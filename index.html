@@ -533,7 +533,7 @@ let targetIdx=0;
 let hits=0, attempts=0;
 let holdMs=0;              // ms que se sostuvo el acorde correcto (continuo)
 let graceMs=0;            // tolerancia a microcortes antes de reiniciar
-const HOLD_MS_NEEDED=500; // hay que sostener el acorde ~0,5 s para que cuente
+const HOLD_MS_NEEDED=250; // hay que sostener el acorde ~0,5 s para que cuente
 const GRACE_MS=120;       // un bache < 120 ms no reinicia el progreso
 
 function currentTarget(){ return CHORDS[targetIdx]; }

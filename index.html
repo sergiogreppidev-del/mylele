@@ -104,6 +104,9 @@
   .string b{display:block; font-size:22px; font-weight:800;}
   .string span{font-size:10px; color:var(--muted); font-weight:600;}
   .string.active{border-color:var(--brand); background:rgba(45,212,191,.12);}
+  .string.selected{border-color:var(--brand); background:rgba(45,212,191,.18); box-shadow:0 0 0 2px var(--brand);}
+  .string.selected b{color:var(--brand);}
+  .tune-mode{text-align:center; color:var(--muted); font-size:12.5px; font-weight:600; margin-top:16px;}
   .string.tuned{border-color:var(--ok); background:rgba(74,222,128,.10);}
   .string.tuned b{color:var(--ok);}
   .string.tuned b::after{content:' ✓'; font-size:14px;}
@@ -201,6 +204,16 @@
   #rCaptureBtn{width:100%; border:1px solid var(--line); cursor:pointer; font:inherit; font-weight:800; font-size:14px; color:var(--muted); background:transparent; padding:14px; border-radius:12px;}
   #rCaptureBtn.on{color:#05201d; background:var(--brand); border-color:var(--brand);}
 
+  /* ---------- Ajustes ---------- */
+  .settings-h{font-size:16px; font-weight:800; margin:8px 0 14px;}
+  .settings-sep{height:1px; background:var(--line); margin:26px 0;}
+  .calib-visual{display:flex; justify-content:center; margin:8px 0 4px;}
+  .calib-dot{width:62px; height:62px; border-radius:50%; background:var(--surface2); border:1px solid var(--line); transition:background .05s;}
+  .calib-dot.count{background:var(--warn);}
+  .calib-dot.beat{background:var(--brand);}
+  .calib-dot.pulse{animation:calibpulse .18s ease;}
+  @keyframes calibpulse{0%{transform:scale(1.22);}100%{transform:scale(1);}}
+
   /* ---------- Debug ---------- */
   #debugtoggle{background:none;border:none;color:var(--muted);font:inherit;font-size:12px;font-weight:600;cursor:pointer;}
   #debug{
@@ -239,29 +252,36 @@
 </header>
 
 <div class="tabs">
-  <div class="tab active" data-view="tuner">Afinador</div>
+  <div class="tab active" data-view="play">Tocar</div>
   <div class="tab" data-view="chords">Acordes</div>
-  <div class="tab" data-view="rhythm">Ritmo</div>
+  <div class="tab" data-view="settings">Ajustes</div>
 </div>
 
 <main>
-  <!-- ---- Afinador ---- -->
-  <section class="view active" id="view-tuner">
-    <div class="note-big">
-      <div class="note-name" id="ttString">–</div>
-      <div class="tt-dir" id="ttDir">Tocá una cuerda</div>
-      <div class="cents" id="centsTxt">esperando sonido…</div>
-    </div>
-    <div class="meter-wrap">
-      <div class="meter">
-        <div class="ticks"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
-        <div class="center-line"></div>
-        <div class="needle" id="needle"></div>
+  <!-- ---- Tocar (interactivo) ---- -->
+  <section class="view active" id="view-play">
+    <div class="rhythm-top">
+      <div class="bpm-ctl">
+        <button id="bpmDown" class="rbtn">–</button>
+        <div class="bpm"><span id="bpmVal" class="tnum">80</span><small>BPM</small></div>
+        <button id="bpmUp" class="rbtn">+</button>
       </div>
-      <div class="meter-labels"><span>♭ grave</span><span>afinada</span><span>aguda ♯</span></div>
+      <button id="muteClick" class="pill">🔊 Clic</button>
     </div>
-    <div class="strings" id="strings"></div>
-    <div class="status" id="tunerStatus">Tocá cada cuerda. Se pone verde <b>solo</b> cuando está en su nota correcta (G · C · E · A).</div>
+
+    <div class="beatbar" id="beatbar"></div>
+    <div class="pattern" id="pattern"></div>
+
+    <div class="rhythm-fb" id="rhythmFb">Tocá "Empezar". Suena una cuenta de 4 y después seguís el ritmo.</div>
+
+    <div class="scorebar">
+      <div class="scorebox"><div class="n tnum" id="rPerfect">0</div><div class="l">Justos</div></div>
+      <div class="scorebox"><div class="n tnum" id="rGood">0</div><div class="l">Cerca</div></div>
+      <div class="scorebox"><div class="n tnum" id="rMiss">0</div><div class="l">Fuera</div></div>
+    </div>
+
+    <button id="playBtn" class="cta-lite primary">▶ Empezar a tocar</button>
+    <div class="rhythm-hint">🎧 Con auriculares el clic no ensucia el micrófono. Calibrá la latencia en <b>Ajustes</b> antes de tocar.</div>
   </section>
 
   <!-- ---- Acordes ---- -->
@@ -300,37 +320,38 @@
     </div>
   </section>
 
-  <!-- ---- Ritmo ---- -->
-  <section class="view" id="view-rhythm">
-    <div class="rhythm-top">
-      <div class="bpm-ctl">
-        <button id="bpmDown" class="rbtn">–</button>
-        <div class="bpm"><span id="bpmVal" class="tnum">80</span><small>BPM</small></div>
-        <button id="bpmUp" class="rbtn">+</button>
+  <!-- ---- Ajustes (afinador + calibración) ---- -->
+  <section class="view" id="view-settings">
+    <div class="settings-h">🎸 Afinador</div>
+    <div class="note-big">
+      <div class="note-name" id="ttString">–</div>
+      <div class="tt-dir" id="ttDir">Tocá una cuerda</div>
+      <div class="cents" id="centsTxt">esperando sonido…</div>
+    </div>
+    <div class="meter-wrap">
+      <div class="meter">
+        <div class="ticks"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+        <div class="center-line"></div>
+        <div class="needle" id="needle"></div>
       </div>
-      <button id="muteClick" class="pill">🔊 Clic</button>
+      <div class="meter-labels"><span>♭ grave</span><span>afinada</span><span>aguda ♯</span></div>
     </div>
+    <div class="tune-mode" id="tuneMode">Tocá una cuerda abajo para fijarla, o afiná en automático.</div>
+    <div class="strings" id="strings"></div>
+    <div class="status" id="tunerStatus">Tocá cada cuerda. Se pone verde <b>solo</b> cuando está en su nota correcta (G · C · E · A).</div>
 
-    <div class="beatbar" id="beatbar"></div>
-    <div class="pattern" id="pattern"></div>
+    <div class="settings-sep"></div>
 
-    <div class="rhythm-fb" id="rhythmFb">Tocá "Empezar". Primero van 4 clics de preparación.</div>
-
-    <div class="scorebar">
-      <div class="scorebox"><div class="n tnum" id="rPerfect">0</div><div class="l">Justos</div></div>
-      <div class="scorebox"><div class="n tnum" id="rGood">0</div><div class="l">Cerca</div></div>
-      <div class="scorebox"><div class="n tnum" id="rMiss">0</div><div class="l">Fuera</div></div>
-    </div>
-
-    <button id="playBtn" class="cta-lite primary">▶ Empezar a tocar</button>
-    <button id="calibBtn" class="cta-lite">🎯 Calibrar latencia (golpeá al ritmo)</button>
-
+    <div class="settings-h">🎯 Calibración de latencia</div>
+    <div class="calib-visual"><div class="calib-dot" id="calibDot"></div></div>
+    <div class="rhythm-fb" id="calibFb">Suena una cuenta de 4 y después, en silencio, seguí el pulso con golpes. Mide cuánto tarda el micrófono en escucharte.</div>
+    <button id="calibBtn" class="cta-lite">🎯 Calibrar latencia</button>
     <div class="latency-line">Latencia detectada: <b id="latVal">sin calibrar</b> <button id="resetLat" class="mini">reset</button></div>
-    <div class="rhythm-hint">💡 Usá auriculares para mejor precisión: evita que el micrófono escuche el clic del metrónomo.</div>
+    <div class="rhythm-hint">🎧 Usá auriculares para calibrar con precisión.</div>
 
     <div class="log-tools">
       <button id="rCaptureBtn">○ Registrar desfases: OFF · muestras: 0</button>
-      <div class="log-hint">Para ajustar la latencia con datos: activá esto, hacé una ronda, y copiame el log de desfases.</div>
+      <div class="log-hint">Para ajustar con datos: activá esto, calibrá o tocá una ronda, y copiame el log.</div>
       <textarea id="rLogText" readonly placeholder="Los desfases van a aparecer acá…"></textarea>
       <div class="log-row">
         <button class="ghost" id="rCopyLogBtn">Copiar log</button>
@@ -593,24 +614,46 @@ const elStrings=document.getElementById('strings');
 const elTunerStatus=document.getElementById('tunerStatus');
 const STR_ES={G:'Sol', C:'Do', E:'Mi', A:'La'};
 
+let selectedString=null;   // null = automático (más cercana)
+function selectString(name){
+  selectedString = (selectedString===name) ? null : name;   // tocar de nuevo = volver a automático
+  refreshStringSel();
+}
+function refreshStringSel(){
+  [...elStrings.children].forEach(ch=>{
+    ch.classList.toggle('selected', ch.dataset.name===selectedString);
+    if(ch.dataset.name===selectedString) ch.classList.remove('tuned');
+  });
+  const hint=document.getElementById('tuneMode');
+  if(hint) hint.innerHTML = selectedString
+    ? 'Afinando la cuerda <b>'+selectedString+' ('+STR_ES[selectedString]+')</b> — tocala de nuevo para volver a automático'
+    : 'Tocá una cuerda abajo para fijarla, o afiná en automático.';
+}
 function buildStringsUI(){
   elStrings.innerHTML='';
   UKE_STRINGS.forEach(s=>{
     const d=document.createElement('div');
     d.className='string'; d.dataset.name=s.name;
     d.innerHTML=`<b>${s.name}</b><span>${STR_ES[s.name]}</span>`;
+    d.addEventListener('click',()=>selectString(s.name));
     elStrings.appendChild(d);
   });
+  refreshStringSel();
 }
 
 let needleEMA=50, centsEMA=0;
 function updateTuner(note, freq){
-  // Buscar la CUERDA objetivo más cercana (G/C/E/A), no cualquier nota.
+  // Cuerda objetivo: la FIJADA si hay una; si no, la más cercana.
   let tgt=null, off=1e9;
-  UKE_STRINGS.forEach(s=>{
-    const c=1200*Math.log2(freq/s.freq);      // + = agudo, - = grave, respecto de esa cuerda
-    if(Math.abs(c)<Math.abs(off)){ off=c; tgt=s; }
-  });
+  if(selectedString){
+    tgt = UKE_STRINGS.find(s=>s.name===selectedString);
+    off = 1200*Math.log2(freq/tgt.freq);
+  }else{
+    UKE_STRINGS.forEach(s=>{
+      const c=1200*Math.log2(freq/s.freq);      // + = agudo, - = grave, respecto de esa cuerda
+      if(Math.abs(c)<Math.abs(off)){ off=c; tgt=s; }
+    });
+  }
   centsEMA = centsEMA*0.7 + off*0.3;
   const c = Math.round(centsEMA);
   const inTune = Math.abs(c)<=8;               // verde SOLO si está en la nota correcta
@@ -639,10 +682,10 @@ function updateTuner(note, freq){
     : (far ? 'Estás lejos de <b>'+tgt.name+'</b> — '+dir.replace(/[↑↓]/g,'').trim().toLowerCase()+' hasta que se ponga verde'
            : 'Casi… '+dir.replace(/[↑↓]/g,'').trim().toLowerCase());
 
-  // marcar la cuerda objetivo y recordar cuáles quedaron afinadas
+  // marcar objetivo (solo en automático) y recordar cuáles quedaron afinadas
   [...elStrings.children].forEach(ch=>{
     const isT = ch.dataset.name===tgt.name;
-    ch.classList.toggle('active', isT && !ch.classList.contains('tuned'));
+    ch.classList.toggle('active', !selectedString && isT && !ch.classList.contains('tuned'));
     if(isT && inTune) ch.classList.add('tuned');
   });
 }
@@ -964,6 +1007,18 @@ function scheduleClick(time, accent){
   osc.connect(g); g.connect(audioCtx.destination);
   osc.start(time); osc.stop(time+0.06);
 }
+// --- blip de confirmación al pegar un golpe (necesita auriculares) ---
+function feedbackBlip(good){
+  if(clickMuted || !audioCtx) return;
+  const t=audioCtx.currentTime;
+  const osc=audioCtx.createOscillator(), g=audioCtx.createGain();
+  osc.frequency.value = good?1600:380;
+  g.gain.setValueAtTime(0.0001,t);
+  g.gain.exponentialRampToValueAtTime(0.16,t+0.001);
+  g.gain.exponentialRampToValueAtTime(0.0001,t+0.04);
+  osc.connect(g); g.connect(audioCtx.destination);
+  osc.start(t); osc.stop(t+0.05);
+}
 
 function startRhythm(calibrate){
   if(rhythmActive || !audioCtx) return;
@@ -976,29 +1031,33 @@ function startRhythm(calibrate){
   for(let k=0;k<REG_BEATS;k++){ expected.push(startTime+(COUNT_IN+k)*beatDur); matched.push(null); }
   rScore={perfect:0,good:0,miss:0}; updateRScore();
   lastBeatShown=-1;
-  // programar TODOS los clics de la cuenta (con sonido). El registro va MUDO.
-  for(let i=0;i<COUNT_IN;i++){ scheduleClick(startTime+i*beatDur, i===0); }
-  buildBeatbar();
-  document.getElementById('playBtn').textContent='● Tocando…';
-  document.getElementById('calibBtn').disabled=true;
+  // con auriculares el clic no contamina el micro -> suena en TODOS los pulsos
+  for(let i=0;i<totalBeats;i++){ scheduleClick(startTime+i*beatDur, (i%4)===0); }
+  if(calibrate){
+    document.getElementById('calibBtn').textContent='● Calibrando…';
+    const d=document.getElementById('calibDot'); d.classList.remove('count','beat','pulse');
+  }else{
+    buildBeatbar();
+    document.getElementById('playBtn').textContent='● Tocando…';
+  }
   requestAnimationFrame(rhythmTick);
 }
 
 function stopRhythm(){
   rhythmActive=false;
   document.getElementById('playBtn').textContent='▶ Empezar a tocar';
-  document.getElementById('calibBtn').disabled=false;
-  // resultado
+  document.getElementById('calibBtn').textContent='🎯 Calibrar latencia';
   if(rhythmModeCalib){
     const offs = matched.filter(m=>m!==null).map(m=>m*1000).sort((a,b)=>a-b);
     if(offs.length>=3){
       const med = offs[Math.floor(offs.length/2)];
       latencyMs = Math.round(med);
       document.getElementById('latVal').textContent = latencyMs+' ms';
-      document.getElementById('rhythmFb').innerHTML='Latencia detectada: <b>'+latencyMs+' ms</b>. Ya queda compensada.';
+      document.getElementById('calibFb').innerHTML='Latencia detectada: <b>'+latencyMs+' ms</b>. Ya queda compensada.';
     }else{
-      document.getElementById('rhythmFb').textContent='Pocos golpes para calibrar. Probá de nuevo siguiendo el latido visual.';
+      document.getElementById('calibFb').textContent='Pocos golpes para calibrar. Probá de nuevo siguiendo el pulso visual.';
     }
+    const d=document.getElementById('calibDot'); d.classList.remove('count','beat','pulse');
   }else{
     const tot=rScore.perfect+rScore.good+rScore.miss;
     const acc = tot? Math.round((rScore.perfect+rScore.good)/tot*100):0;
@@ -1007,17 +1066,24 @@ function stopRhythm(){
 }
 
 function registerHit(t){
-  // buscar el pulso esperado más cercano
+  // ignorar golpes durante la cuenta regresiva (todavía no se registra)
+  const regStart = startTime + COUNT_IN*beatDur;
+  if(t < regStart - beatDur*0.5) return;
+
+  // pulso esperado más cercano
   let bi=-1, best=1e9;
   for(let k=0;k<expected.length;k++){
     const d=Math.abs(t-expected[k]);
     if(d<best){ best=d; bi=k; }
   }
   if(bi<0) return;
-  const comp = (latencyMs||0)/1000;           // compensar latencia
-  const off = (t - expected[bi]) - comp;       // + = tarde, - = temprano
-  // registrar en calibración usamos el crudo (sin compensar) para medir la latencia
-  const rawOff = t - expected[bi];
+  // descartar golpes demasiado lejos de cualquier pulso (basura o medio tiempo)
+  if(best > beatDur*0.45) return;
+
+  const rawOff = t - expected[bi];             // + = tarde, - = temprano
+  const comp = (latencyMs||0)/1000;
+  const off = rawOff - comp;                    // compensado por latencia
+
   if(matched[bi]===null){
     matched[bi] = rhythmModeCalib ? rawOff : off;
     if(!rhythmModeCalib){
@@ -1025,13 +1091,13 @@ function registerHit(t){
       let cls,txt;
       if(a<=PERFECT_S){ cls='ok'; txt='¡Justo! 🎯'; rScore.perfect++; }
       else if(a<=GOOD_S){ cls='ok'; txt=(off<0?'Cerca (un toque temprano)':'Cerca (un toque tarde)'); rScore.good++; }
-      else { cls='off'; txt=(off<0?'Muy temprano ⏪':'Muy tarde ⏩'); rScore.miss++; }
+      else { cls='off'; txt=(off<0?'Temprano ⏪':'Tarde ⏩'); rScore.miss++; }
       document.getElementById('rhythmFb').innerHTML='<b>'+txt+'</b>';
       updateRScore();
+      feedbackBlip(cls==='ok');
       const dot=document.querySelectorAll('#beatbar .beatdot')[COUNT_IN+bi];
       if(dot){ dot.classList.remove('hit-ok','hit-off'); dot.classList.add(cls==='ok'?'hit-ok':'hit-off'); }
     }
-    // log de desfases
     if(rLogOn){ rLog.push({beat:bi+1, ms:Math.round(rawOff*1000), comp_ms:Math.round(off*1000)}); renderRLog(); }
   }
 }
@@ -1046,19 +1112,21 @@ function rhythmTick(){
   if(beat!==lastBeatShown && beat>=0 && beat<totalBeats){
     lastBeatShown=beat;
     const inCount = beat<COUNT_IN;
-    const dots=document.querySelectorAll('#beatbar .beatdot');
-    dots.forEach(d=>d.classList.remove('on','count'));
-    if(dots[beat]) dots[beat].classList.add(inCount?'count':'on');
-    // patrón visual: marcar la flecha actual
-    const pat=document.querySelectorAll('#pattern span');
-    pat.forEach((s,i)=>s.classList.toggle('cur', !inCount && (beat-COUNT_IN)===i));
-    // texto guía
-    if(inCount){
-      document.getElementById('rhythmFb').innerHTML='Preparate… <b>'+(COUNT_IN-beat)+'</b>';
-    }else if(beat===COUNT_IN){
-      document.getElementById('rhythmFb').innerHTML= rhythmModeCalib
-        ? '¡Golpeá siguiendo el latido! (sin sonido)'
-        : '¡Rasgueá ↓ en cada latido! (sin sonido)';
+    if(rhythmModeCalib){
+      const d=document.getElementById('calibDot');
+      d.classList.toggle('count', inCount);
+      d.classList.toggle('beat', !inCount);
+      d.classList.remove('pulse'); void d.offsetWidth; d.classList.add('pulse');
+      if(inCount) document.getElementById('calibFb').innerHTML='Preparate… <b>'+(COUNT_IN-beat)+'</b>';
+      else if(beat===COUNT_IN) document.getElementById('calibFb').innerHTML='¡Golpeá junto con cada clic! 🎧';
+    }else{
+      const dots=document.querySelectorAll('#beatbar .beatdot');
+      dots.forEach(d=>d.classList.remove('on','count'));
+      if(dots[beat]) dots[beat].classList.add(inCount?'count':'on');
+      const pat=document.querySelectorAll('#pattern span');
+      pat.forEach((s,i)=>s.classList.toggle('cur', !inCount && (beat-COUNT_IN)===i));
+      if(inCount) document.getElementById('rhythmFb').innerHTML='Preparate… <b>'+(COUNT_IN-beat)+'</b>';
+      else if(beat===COUNT_IN) document.getElementById('rhythmFb').innerHTML='¡Rasgueá ↓ junto con el clic! 🎧';
     }
   }
   requestAnimationFrame(rhythmTick);

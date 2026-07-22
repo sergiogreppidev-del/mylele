@@ -69,7 +69,7 @@
   .tab.active{background:var(--surface2); color:var(--text); border-color:var(--line);}
 
   main{flex:1; overflow:hidden; position:relative;}
-  .view{position:absolute; inset:0; padding:8px 20px 20px; display:none; flex-direction:column;}
+  .view{position:absolute; inset:0; padding:8px 20px 20px; display:none; flex-direction:column; overflow-y:auto; -webkit-overflow-scrolling:touch;}
   .view.active{display:flex;}
 
   /* ---------- Afinador ---------- */
@@ -149,9 +149,10 @@
   /* ---------- Log de diagnóstico ---------- */
   .log-tools{margin-top:18px; border-top:1px solid var(--line); padding-top:14px;}
   #captureBtn{
-    width:100%; border:none; cursor:pointer; font:inherit; font-weight:800; font-size:15px;
-    color:#05201d; background:var(--brand); padding:14px; border-radius:12px;
+    width:100%; border:1px solid var(--line); cursor:pointer; font:inherit; font-weight:800; font-size:14px;
+    color:var(--muted); background:transparent; padding:14px; border-radius:12px;
   }
+  #captureBtn.on{ color:#05201d; background:var(--brand); border-color:var(--brand); }
   #captureBtn:active{transform:scale(.98);}
   .log-hint{color:var(--muted); font-size:12px; line-height:1.5; margin:10px 0;}
   #logText{
@@ -249,9 +250,9 @@
     <button class="ghost" id="resetScore">Reiniciar ejercicio</button>
 
     <div class="log-tools">
-      <button id="captureBtn">🎙 Capturar muestra (<span id="logCount">0</span>)</button>
-      <div class="log-hint">Afiná cada nota en el afinador, volvé acá, tocá el acorde objetivo y —mientras suena— tocá "Capturar". Repetí con los 4 acordes (varias veces cada uno). Después copiá el log y mandámelo.</div>
-      <textarea id="logText" readonly placeholder="Las muestras capturadas van a aparecer acá…"></textarea>
+      <button id="captureBtn">○ Auto-captura: OFF · muestras: 0</button>
+      <div class="log-hint">Afiná las notas, activá la <b>auto-captura</b> y tocá los 4 acordes normalmente (sin apretar nada). Se guardan muestras solas mientras tocás. Después "Copiar log" y me lo pasás.</div>
+      <textarea id="logText" readonly placeholder="Las muestras van a aparecer acá…"></textarea>
       <div class="log-row">
         <button class="ghost" id="copyLogBtn">Copiar log</button>
         <button class="ghost" id="clearLogBtn">Borrar</button>
@@ -443,17 +444,17 @@ function matchChord(chroma){
 let lastFrame=performance.now(), fps=0;
 let lastChordT=performance.now();
 
-// estabilización de acorde (evita parpadeo): confirmar N cuadros seguidos
-let stableChord=null, stableCount=0;
-const STABLE_NEEDED=5;      // ~cuadros consecutivos para confirmar
+// umbrales de confianza del acorde
 const SIM_MIN=0.55;         // similitud mínima
 const MARGIN_MIN=0.02;      // margen sobre el 2º mejor
-const SIGNAL_MIN=0.02;      // energía mínima para contar (filtra ruiditos)
 
 // --- Log de diagnóstico (para tunear la detección con datos reales) ---
 let lastRms=0;
 let chromaRing=[]; const CHROMA_RING=12;   // ~200 ms de cromagramas recientes
 let diagLog=[];
+let autoCapture=false, lastAutoCapT=0;
+const AUTO_CAP_MS=600;   // una muestra automática cada ~0,6 s mientras tocás
+const MAX_LOG=80;        // tope de muestras
 
 function loop(){
   if(!running) return;
@@ -477,11 +478,17 @@ function loop(){
   const now = performance.now();
   const chordDt = Math.min(80, now - lastChordT);   // ms desde el cuadro anterior (cap por si hubo lag)
   lastChordT = now;
-  const strongSignal = rms>SIGNAL_MIN || chroma.some(v=>v>0.12);
+  const strongSignal = rms>0.012 || chroma.some(v=>v>0.06);   // umbral suave: detecta al primer intento
   lastRms = rms;
   if(strongSignal){ chromaRing.push(chroma); if(chromaRing.length>CHROMA_RING) chromaRing.shift(); }
   const match = matchChord(chroma);
   handleChordDetection(match, strongSignal, chordDt);
+
+  // auto-captura para el log (sin apretar botones, manos libres)
+  if(autoCapture && strongSignal && match.chord && match.sim>=SIM_MIN && match.margin>=MARGIN_MIN
+     && diagLog.length<MAX_LOG && (now-lastAutoCapT>AUTO_CAP_MS)){
+    if(doCapture()) lastAutoCapT=now;
+  }
 
   // ---- Debug ----
   const dt=performance.now()-t0;
@@ -624,29 +631,24 @@ function handleChordDetection(match, strongSignal, dt){
   const {chord,sim,margin}=match;
   const confident = strongSignal && chord && sim>=SIM_MIN && margin>=MARGIN_MIN;
 
-  // estabilización general (para mostrar "detectado")
-  if(confident && chord===stableChord){ stableCount++; }
-  else{ stableChord = confident?chord:null; stableCount = confident?1:0; }
-  const shown = (confident && stableCount>=STABLE_NEEDED) ? chord : null;
-
+  const shown = confident ? chord : null;   // mostrar directo el mejor acorde confiable
   elChipDet.textContent = shown?shown.name:'–';
   elChipConf.textContent = Math.round(sim*100)+'%';
 
   const t=currentTarget();
-  const onTarget = shown && shown.name===t.name;
+  const onTarget = confident && chord.name===t.name;   // scoring responsivo (sin esperar N cuadros)
 
   if(onTarget){
-    holdMs += dt;                 // sumar TIEMPO sostenido, no cuadros
-    graceMs = GRACE_MS;           // recargar la tolerancia
+    holdMs += dt;                 // sumar TIEMPO sostenido
+    graceMs = GRACE_MS;
     elChipDet.classList.add('ok');
-    elDetectedTxt.innerHTML='Sostené <b>'+shown.name+'</b>… ✓';
+    elDetectedTxt.innerHTML='Sostené <b>'+chord.name+'</b>… ✓';
     setHold(Math.min(1, holdMs/HOLD_MS_NEEDED));
     if(holdMs>=HOLD_MS_NEEDED){ scoreHit(); }
   }else{
     elChipDet.classList.remove('ok');
-    // un microcorte breve no reinicia; superada la gracia, el progreso cae rápido
     if(graceMs>0 && holdMs>0){ graceMs -= dt; }
-    else { holdMs = Math.max(0, holdMs - dt*2); }   // caída x2 -> un ruidito no llega a acumular
+    else { holdMs = Math.max(0, holdMs - dt*2); }   // un ruidito no llega a acumular
     setHold(Math.min(1, holdMs/HOLD_MS_NEEDED));
     elDetectedTxt.innerHTML = shown ? ('Escuché <b>'+shown.name+'</b> — probá de nuevo') : 'Escuchando…';
   }
@@ -691,11 +693,8 @@ function simsFor(chroma){
     return {name:c.name, sim:d};
   });
 }
-function captureSample(){
-  if(chromaRing.length<3){
-    alert('No hay suficiente señal. Tocá el acorde y, mientras SUENA, tocá "Capturar".');
-    return;
-  }
+function doCapture(){
+  if(chromaRing.length<3) return false;
   // promediar los cromagramas recientes -> muestra estable
   const avg=new Array(12).fill(0);
   chromaRing.forEach(fr=>{ for(let i=0;i<12;i++) avg[i]+=fr[i]; });
@@ -714,13 +713,16 @@ function captureSample(){
     chroma: avg.map(v=>+v.toFixed(3))
   });
   renderLog();
-  // feedback visual breve
+  return true;
+}
+function updateCaptureBtn(){
   const b=document.getElementById('captureBtn');
-  const prev=b.style.background; b.style.background='var(--ok)';
-  setTimeout(()=>b.style.background=prev, 200);
+  b.classList.toggle('on', autoCapture);
+  b.innerHTML = (autoCapture?'● Auto-captura: ON':'○ Auto-captura: OFF')
+    +' · muestras: '+diagLog.length;
 }
 function renderLog(){
-  document.getElementById('logCount').textContent=diagLog.length;
+  updateCaptureBtn();
   const lines=diagLog.map(e=>{
     const s=CHORDS.map(c=>c.name+':'+e.sims[c.name]).join(' ');
     return `#${e.n} obj=${e.target} -> ${e.best} (margen ${e.margin}, rms ${e.rms}) | ${s}`;
@@ -731,7 +733,7 @@ function renderLog(){
 }
 async function copyLog(){
   const t=document.getElementById('logText');
-  if(!t.value){ alert('El log está vacío. Capturá al menos una muestra.'); return; }
+  if(!t.value){ alert('El log está vacío. Activá la auto-captura y tocá algunos acordes.'); return; }
   const btn=document.getElementById('copyLogBtn');
   try{
     await navigator.clipboard.writeText(t.value);
@@ -743,7 +745,10 @@ async function copyLog(){
   }
   setTimeout(()=>btn.textContent='Copiar log', 1500);
 }
-document.getElementById('captureBtn').addEventListener('click', captureSample);
+document.getElementById('captureBtn').addEventListener('click',()=>{
+  autoCapture=!autoCapture;
+  updateCaptureBtn();
+});
 document.getElementById('copyLogBtn').addEventListener('click', copyLog);
 document.getElementById('clearLogBtn').addEventListener('click',()=>{
   diagLog=[]; renderLog();
@@ -798,7 +803,7 @@ document.querySelectorAll('.tab').forEach(tab=>{
 });
 
 // init
-setTarget(0); updateScore();
+setTarget(0); updateScore(); updateCaptureBtn();
 </script>
 </body>
 </html>

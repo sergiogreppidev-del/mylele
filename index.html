@@ -170,6 +170,9 @@
   .log-row .ghost{margin-top:0; flex:1; padding:10px; font-size:13px;}
 
   /* ---------- Ritmo ---------- */
+  .content-status{text-align:center; font-size:12.5px; font-weight:700; padding:8px 10px; border-radius:10px; margin-top:4px; background:var(--surface2); color:var(--muted); border:1px solid var(--line);}
+  .content-status.ok{color:#05201d; background:var(--brand); border-color:var(--brand);}
+  .content-status.warn{color:#2a1c00; background:var(--warn); border-color:var(--warn);}
   .track{width:100%; height:150px; display:block; border-radius:16px; background:var(--surface); border:1px solid var(--line); margin:16px 0 6px;}
   .rhythm-top{display:flex; align-items:center; justify-content:space-between; margin-top:6px;}
   .bpm-ctl{display:flex; align-items:center; gap:14px;}
@@ -261,6 +264,7 @@
 <main>
   <!-- ---- Tocar (interactivo) ---- -->
   <section class="view active" id="view-play">
+    <div class="content-status" id="contentStatus">Cargando contenido…</div>
     <div class="rhythm-top">
       <div class="bpm-ctl">
         <button id="bpmDown" class="rbtn">–</button>
@@ -419,6 +423,7 @@ async function supaGet(path){
   return r.json();
 }
 async function loadContent(){
+  const setStatus=(txt,cls)=>{ const el=document.getElementById('contentStatus'); if(el){ el.textContent=txt; el.className='content-status'+(cls?' '+cls:''); } };
   try{
     // 1) acordes (con digitación) -> reconstruye las plantillas de detección
     const rows=await supaGet('chords?select=*');
@@ -440,12 +445,15 @@ async function loadContent(){
       bpm=Number(songMeta.bpm)||80; document.getElementById('bpmVal').textContent=bpm;
       const chart=(songMeta.charts||[]).find(c=>c.mode==='chords');
       if(chart && Array.isArray(chart.events)) songEvents=chart.events;
-      document.getElementById('rhythmFb').innerHTML='🎵 <b>'+songMeta.title+'</b> — tocá cada acorde cuando llegue a la línea.';
+      setStatus('🎵 '+songMeta.title+' · '+songEvents.length+' acordes · desde Supabase ✓','ok');
+    }else{
+      throw new Error('sin canción');
     }
     console.log('MyLele: contenido cargado', {acordes:CHORDS.map(c=>c.name), evts:songEvents.length});
   }catch(e){
-    console.warn('No se pudo cargar contenido de Supabase, uso el de por defecto.', e);
+    console.warn('No se pudo cargar de Supabase, uso respaldo local.', e);
     songEvents=DEFAULT_EVENTS.slice();
+    setStatus('⚠ Sin conexión con Supabase — usando progresión local (C·Am·F·G)','warn');
   }
 }
 
@@ -1214,9 +1222,10 @@ function renderTrack(){
     // notas-acorde de la canción
     for(let i=0;i<songNotes.length;i++){
       const nt=songNotes[i];
-      // --- scoring: cuando la nota está en la ventana de la línea, comparar el acorde detectado ---
+      // --- scoring: comparar el acorde detectado con la nota, compensando la latencia de entrada ---
       if(nt.state==='pending'){
-        const dtc=now-nt.t;
+        const comp=(latencyMs||0)/1000;      // la app te escucha 'comp' segundos tarde
+        const dtc=(now-comp)-nt.t;           // desfase real respecto de la nota, ya compensado
         if(Math.abs(dtc)<=GOOD_S && detectedChord && detectedChord.name===nt.chord){
           nt.state='good';
           const perfect=Math.abs(dtc)<=PERFECT_S;

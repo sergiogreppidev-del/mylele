@@ -166,6 +166,41 @@
   .log-row{display:flex; gap:8px; margin-top:8px;}
   .log-row .ghost{margin-top:0; flex:1; padding:10px; font-size:13px;}
 
+  /* ---------- Ritmo ---------- */
+  .rhythm-top{display:flex; align-items:center; justify-content:space-between; margin-top:6px;}
+  .bpm-ctl{display:flex; align-items:center; gap:14px;}
+  .rbtn{width:44px; height:44px; border-radius:50%; border:1px solid var(--line); background:var(--surface); color:var(--text); font-size:22px; font-weight:800; cursor:pointer;}
+  .rbtn:active{transform:scale(.95);}
+  .bpm{display:flex; flex-direction:column; align-items:center; line-height:1;}
+  .bpm span{font-size:34px; font-weight:800;}
+  .bpm small{font-size:11px; color:var(--muted); font-weight:700;}
+  .pill{border:1px solid var(--line); background:var(--surface); color:var(--muted); font:inherit; font-weight:700; font-size:13px; padding:8px 14px; border-radius:100px; cursor:pointer;}
+  .pill.off{opacity:.5;}
+
+  .beatbar{display:flex; gap:10px; justify-content:center; margin:22px 0 10px;}
+  .beatdot{width:46px; height:46px; border-radius:50%; background:var(--surface2); border:1px solid var(--line); transition:transform .05s, background .05s; display:flex; align-items:center; justify-content:center; font-weight:800; color:var(--muted);}
+  .beatdot.on{background:var(--brand); color:#05201d; transform:scale(1.18);}
+  .beatdot.count{background:var(--warn); color:#2a1c00;}
+  .beatdot.hit-ok{box-shadow:0 0 0 3px var(--ok);}
+  .beatdot.hit-off{box-shadow:0 0 0 3px var(--off);}
+
+  .pattern{display:flex; gap:10px; justify-content:center; color:var(--muted); font-size:26px; font-weight:800; height:32px;}
+  .pattern span.cur{color:var(--brand);}
+
+  .rhythm-fb{text-align:center; font-size:15px; font-weight:700; min-height:24px; margin:14px 0; color:var(--muted);}
+  .rhythm-fb b{color:var(--text);}
+
+  .cta-lite{width:100%; border:none; cursor:pointer; font:inherit; font-weight:800; font-size:16px; padding:15px; border-radius:14px; margin-top:12px; background:var(--surface2); color:var(--text); border:1px solid var(--line);}
+  .cta-lite.primary{background:var(--brand); color:#05201d; border:none;}
+  .cta-lite:active{transform:scale(.99);}
+
+  .latency-line{text-align:center; color:var(--muted); font-size:13px; margin-top:16px;}
+  .latency-line b{color:var(--brand);}
+  .mini{background:none; border:none; color:var(--muted); text-decoration:underline; font:inherit; font-size:12px; cursor:pointer;}
+  .rhythm-hint{color:var(--muted); font-size:12px; line-height:1.5; margin-top:10px; text-align:center;}
+  #rCaptureBtn{width:100%; border:1px solid var(--line); cursor:pointer; font:inherit; font-weight:800; font-size:14px; color:var(--muted); background:transparent; padding:14px; border-radius:12px;}
+  #rCaptureBtn.on{color:#05201d; background:var(--brand); border-color:var(--brand);}
+
   /* ---------- Debug ---------- */
   #debugtoggle{background:none;border:none;color:var(--muted);font:inherit;font-size:12px;font-weight:600;cursor:pointer;}
   #debug{
@@ -206,6 +241,7 @@
 <div class="tabs">
   <div class="tab active" data-view="tuner">Afinador</div>
   <div class="tab" data-view="chords">Acordes</div>
+  <div class="tab" data-view="rhythm">Ritmo</div>
 </div>
 
 <main>
@@ -264,7 +300,44 @@
     </div>
   </section>
 
-  <div id="debug" style="margin:0 20px;">
+  <!-- ---- Ritmo ---- -->
+  <section class="view" id="view-rhythm">
+    <div class="rhythm-top">
+      <div class="bpm-ctl">
+        <button id="bpmDown" class="rbtn">–</button>
+        <div class="bpm"><span id="bpmVal" class="tnum">80</span><small>BPM</small></div>
+        <button id="bpmUp" class="rbtn">+</button>
+      </div>
+      <button id="muteClick" class="pill">🔊 Clic</button>
+    </div>
+
+    <div class="beatbar" id="beatbar"></div>
+    <div class="pattern" id="pattern"></div>
+
+    <div class="rhythm-fb" id="rhythmFb">Tocá "Empezar". Primero van 4 clics de preparación.</div>
+
+    <div class="scorebar">
+      <div class="scorebox"><div class="n tnum" id="rPerfect">0</div><div class="l">Justos</div></div>
+      <div class="scorebox"><div class="n tnum" id="rGood">0</div><div class="l">Cerca</div></div>
+      <div class="scorebox"><div class="n tnum" id="rMiss">0</div><div class="l">Fuera</div></div>
+    </div>
+
+    <button id="playBtn" class="cta-lite primary">▶ Empezar a tocar</button>
+    <button id="calibBtn" class="cta-lite">🎯 Calibrar latencia (golpeá al ritmo)</button>
+
+    <div class="latency-line">Latencia detectada: <b id="latVal">sin calibrar</b> <button id="resetLat" class="mini">reset</button></div>
+    <div class="rhythm-hint">💡 Usá auriculares para mejor precisión: evita que el micrófono escuche el clic del metrónomo.</div>
+
+    <div class="log-tools">
+      <button id="rCaptureBtn">○ Registrar desfases: OFF · muestras: 0</button>
+      <div class="log-hint">Para ajustar la latencia con datos: activá esto, hacé una ronda, y copiame el log de desfases.</div>
+      <textarea id="rLogText" readonly placeholder="Los desfases van a aparecer acá…"></textarea>
+      <div class="log-row">
+        <button class="ghost" id="rCopyLogBtn">Copiar log</button>
+        <button class="ghost" id="rClearLogBtn">Borrar</button>
+      </div>
+    </div>
+  </section>
     <div>Frecuencia: <span id="dFreq">–</span> Hz &nbsp;·&nbsp; RMS: <span id="dRms">–</span></div>
     <div>Mejor acorde: <span id="dChord">–</span> &nbsp;·&nbsp; sim: <span id="dSim">–</span> &nbsp;·&nbsp; margen: <span id="dMargin">–</span></div>
     <div>Cromagrama (barras) vs plantilla del acorde objetivo (amarillo):</div>
@@ -494,6 +567,9 @@ function loop(){
      && diagLog.length<MAX_LOG && (now-lastAutoCapT>AUTO_CAP_MS)){
     if(doCapture()) lastAutoCapT=now;
   }
+
+  // ---- Ritmo: detección de golpes (onsets) ----
+  detectOnset(rms);
 
   // ---- Debug ----
   const dt=performance.now()-t0;
@@ -839,8 +915,210 @@ document.querySelectorAll('.tab').forEach(tab=>{
   });
 });
 
+// ===================================================================
+//  MÓDULO DE RITMO (metrónomo + rasgueo + calibración de latencia)
+// ===================================================================
+let bpm=80;
+let latencyMs=null;              // compensación de latencia calibrada (ms)
+let rhythmActive=false;
+let rhythmModeCalib=false;       // true = estamos calibrando
+let clickMuted=false;
+
+const COUNT_IN=4;                // pulsos de preparación (con sonido)
+const REG_BEATS=8;              // pulsos que se registran (en silencio)
+const PERFECT_S=0.06, GOOD_S=0.12;  // ventanas de "justo" y "cerca" (segundos)
+
+let beatDur=60/bpm;
+let startTime=0;                 // audioCtx time del pulso 0
+let totalBeats=COUNT_IN+REG_BEATS;
+let expected=[];                 // tiempos esperados de los pulsos registrados
+let matched=[];                  // offset detectado por cada pulso registrado (o null)
+let lastBeatShown=-1;
+let rScore={perfect:0,good:0,miss:0};
+
+// --- detección de onsets (golpes) ---
+let energyEMA=0, lastOnsetT=0, onsetArmed=true;
+function detectOnset(rms){
+  // baseline lento de energía
+  energyEMA = energyEMA*0.85 + rms*0.15;
+  const t = audioCtx ? audioCtx.currentTime : 0;
+  const isPeak = rms > energyEMA*1.8 + 0.02 && rms > 0.03;
+  if(isPeak && onsetArmed && (t-lastOnsetT)>0.12){   // refractario 120 ms
+    lastOnsetT=t; onsetArmed=false;
+    if(rhythmActive) registerHit(t);
+  }
+  if(rms < energyEMA*1.2){ onsetArmed=true; }        // rearmar cuando baja la energía
+}
+
+// --- clic del metrónomo (programado con precisión) ---
+function scheduleClick(time, accent){
+  if(clickMuted) return;
+  const osc=audioCtx.createOscillator();
+  const g=audioCtx.createGain();
+  osc.frequency.value = accent?1200:850;
+  g.gain.setValueAtTime(0.0001, time);
+  g.gain.exponentialRampToValueAtTime(accent?0.5:0.32, time+0.001);
+  g.gain.exponentialRampToValueAtTime(0.0001, time+0.05);
+  osc.connect(g); g.connect(audioCtx.destination);
+  osc.start(time); osc.stop(time+0.06);
+}
+
+function startRhythm(calibrate){
+  if(rhythmActive || !audioCtx) return;
+  rhythmModeCalib=calibrate;
+  rhythmActive=true;
+  beatDur=60/bpm;
+  totalBeats=COUNT_IN+REG_BEATS;
+  startTime=audioCtx.currentTime + 0.3;
+  expected=[]; matched=[];
+  for(let k=0;k<REG_BEATS;k++){ expected.push(startTime+(COUNT_IN+k)*beatDur); matched.push(null); }
+  rScore={perfect:0,good:0,miss:0}; updateRScore();
+  lastBeatShown=-1;
+  // programar TODOS los clics de la cuenta (con sonido). El registro va MUDO.
+  for(let i=0;i<COUNT_IN;i++){ scheduleClick(startTime+i*beatDur, i===0); }
+  buildBeatbar();
+  document.getElementById('playBtn').textContent='● Tocando…';
+  document.getElementById('calibBtn').disabled=true;
+  requestAnimationFrame(rhythmTick);
+}
+
+function stopRhythm(){
+  rhythmActive=false;
+  document.getElementById('playBtn').textContent='▶ Empezar a tocar';
+  document.getElementById('calibBtn').disabled=false;
+  // resultado
+  if(rhythmModeCalib){
+    const offs = matched.filter(m=>m!==null).map(m=>m*1000).sort((a,b)=>a-b);
+    if(offs.length>=3){
+      const med = offs[Math.floor(offs.length/2)];
+      latencyMs = Math.round(med);
+      document.getElementById('latVal').textContent = latencyMs+' ms';
+      document.getElementById('rhythmFb').innerHTML='Latencia detectada: <b>'+latencyMs+' ms</b>. Ya queda compensada.';
+    }else{
+      document.getElementById('rhythmFb').textContent='Pocos golpes para calibrar. Probá de nuevo siguiendo el latido visual.';
+    }
+  }else{
+    const tot=rScore.perfect+rScore.good+rScore.miss;
+    const acc = tot? Math.round((rScore.perfect+rScore.good)/tot*100):0;
+    document.getElementById('rhythmFb').innerHTML='¡Listo! Precisión rítmica: <b>'+acc+'%</b>';
+  }
+}
+
+function registerHit(t){
+  // buscar el pulso esperado más cercano
+  let bi=-1, best=1e9;
+  for(let k=0;k<expected.length;k++){
+    const d=Math.abs(t-expected[k]);
+    if(d<best){ best=d; bi=k; }
+  }
+  if(bi<0) return;
+  const comp = (latencyMs||0)/1000;           // compensar latencia
+  const off = (t - expected[bi]) - comp;       // + = tarde, - = temprano
+  // registrar en calibración usamos el crudo (sin compensar) para medir la latencia
+  const rawOff = t - expected[bi];
+  if(matched[bi]===null){
+    matched[bi] = rhythmModeCalib ? rawOff : off;
+    if(!rhythmModeCalib){
+      const a=Math.abs(off);
+      let cls,txt;
+      if(a<=PERFECT_S){ cls='ok'; txt='¡Justo! 🎯'; rScore.perfect++; }
+      else if(a<=GOOD_S){ cls='ok'; txt=(off<0?'Cerca (un toque temprano)':'Cerca (un toque tarde)'); rScore.good++; }
+      else { cls='off'; txt=(off<0?'Muy temprano ⏪':'Muy tarde ⏩'); rScore.miss++; }
+      document.getElementById('rhythmFb').innerHTML='<b>'+txt+'</b>';
+      updateRScore();
+      const dot=document.querySelectorAll('#beatbar .beatdot')[COUNT_IN+bi];
+      if(dot){ dot.classList.remove('hit-ok','hit-off'); dot.classList.add(cls==='ok'?'hit-ok':'hit-off'); }
+    }
+    // log de desfases
+    if(rLogOn){ rLog.push({beat:bi+1, ms:Math.round(rawOff*1000), comp_ms:Math.round(off*1000)}); renderRLog(); }
+  }
+}
+
+// --- animación / avance por cuadros ---
+function rhythmTick(){
+  if(!rhythmActive) return;
+  const now=audioCtx.currentTime;
+  const beat = Math.floor((now-startTime)/beatDur);
+  if(beat>=totalBeats+1){ stopRhythm(); return; }
+
+  if(beat!==lastBeatShown && beat>=0 && beat<totalBeats){
+    lastBeatShown=beat;
+    const inCount = beat<COUNT_IN;
+    const dots=document.querySelectorAll('#beatbar .beatdot');
+    dots.forEach(d=>d.classList.remove('on','count'));
+    if(dots[beat]) dots[beat].classList.add(inCount?'count':'on');
+    // patrón visual: marcar la flecha actual
+    const pat=document.querySelectorAll('#pattern span');
+    pat.forEach((s,i)=>s.classList.toggle('cur', !inCount && (beat-COUNT_IN)===i));
+    // texto guía
+    if(inCount){
+      document.getElementById('rhythmFb').innerHTML='Preparate… <b>'+(COUNT_IN-beat)+'</b>';
+    }else if(beat===COUNT_IN){
+      document.getElementById('rhythmFb').innerHTML= rhythmModeCalib
+        ? '¡Golpeá siguiendo el latido! (sin sonido)'
+        : '¡Rasgueá ↓ en cada latido! (sin sonido)';
+    }
+  }
+  requestAnimationFrame(rhythmTick);
+}
+
+function buildBeatbar(){
+  const bb=document.getElementById('beatbar');
+  bb.innerHTML='';
+  for(let i=0;i<totalBeats;i++){
+    const d=document.createElement('div'); d.className='beatdot';
+    d.textContent = i<COUNT_IN ? (COUNT_IN-i) : '';
+    bb.appendChild(d);
+  }
+  // patrón ↓ para los pulsos registrados
+  const pat=document.getElementById('pattern');
+  pat.innerHTML='';
+  for(let k=0;k<REG_BEATS;k++){ const s=document.createElement('span'); s.textContent='↓'; pat.appendChild(s); }
+}
+function updateRScore(){
+  document.getElementById('rPerfect').textContent=rScore.perfect;
+  document.getElementById('rGood').textContent=rScore.good;
+  document.getElementById('rMiss').textContent=rScore.miss;
+}
+
+// --- log de desfases ---
+let rLog=[], rLogOn=false;
+function updateRCaptureBtn(){
+  const b=document.getElementById('rCaptureBtn');
+  b.classList.toggle('on', rLogOn);
+  b.textContent=(rLogOn?'● Registrar desfases: ON':'○ Registrar desfases: OFF')+' · muestras: '+rLog.length;
+}
+function renderRLog(){
+  updateRCaptureBtn();
+  const lines=rLog.map(e=>`pulso ${e.beat}: crudo ${e.ms>0?'+':''}${e.ms}ms (compensado ${e.comp_ms>0?'+':''}${e.comp_ms}ms)`);
+  document.getElementById('rLogText').value =
+    'NALU rhythm log · BPM '+bpm+' · latencia '+(latencyMs===null?'sin calibrar':latencyMs+'ms')+'\n'
+    +lines.join('\n')+'\n\n--- JSON ---\n'+JSON.stringify({bpm,latencyMs,offsets:rLog});
+}
+
+// --- wiring ---
+document.getElementById('bpmUp').addEventListener('click',()=>{ if(!rhythmActive){ bpm=Math.min(200,bpm+5); document.getElementById('bpmVal').textContent=bpm; }});
+document.getElementById('bpmDown').addEventListener('click',()=>{ if(!rhythmActive){ bpm=Math.max(40,bpm-5); document.getElementById('bpmVal').textContent=bpm; }});
+document.getElementById('muteClick').addEventListener('click',()=>{
+  clickMuted=!clickMuted;
+  const b=document.getElementById('muteClick');
+  b.textContent = clickMuted?'🔇 Clic':'🔊 Clic'; b.classList.toggle('off',clickMuted);
+});
+document.getElementById('playBtn').addEventListener('click',()=>{ if(!rhythmActive) startRhythm(false); });
+document.getElementById('calibBtn').addEventListener('click',()=>{ if(!rhythmActive){ document.getElementById('rhythmFb').textContent='Calibrando: seguí el latido visual con golpes.'; startRhythm(true);} });
+document.getElementById('resetLat').addEventListener('click',()=>{ latencyMs=null; document.getElementById('latVal').textContent='sin calibrar'; });
+document.getElementById('rCaptureBtn').addEventListener('click',()=>{ rLogOn=!rLogOn; updateRCaptureBtn(); });
+document.getElementById('rCopyLogBtn').addEventListener('click',async()=>{
+  const t=document.getElementById('rLogText'); if(!t.value){ alert('Log vacío.'); return; }
+  const b=document.getElementById('rCopyLogBtn');
+  try{ await navigator.clipboard.writeText(t.value); b.textContent='Copiado ✓'; }
+  catch(e){ t.focus(); t.select(); try{document.execCommand('copy');b.textContent='Copiado ✓';}catch(_){b.textContent='Seleccioná y copiá';} }
+  setTimeout(()=>b.textContent='Copiar log',1500);
+});
+document.getElementById('rClearLogBtn').addEventListener('click',()=>{ rLog=[]; renderRLog(); });
+
 // init
-setTarget(0); updateScore(); updateCaptureBtn();
+setTarget(0); updateScore(); updateCaptureBtn(); buildBeatbar(); updateRCaptureBtn();
 </script>
 </body>
 </html>

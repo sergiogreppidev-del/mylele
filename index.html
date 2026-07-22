@@ -302,8 +302,8 @@ async function start(){
   timeBuf = new Float32Array(analyserPitch.fftSize);
 
   analyserChroma = audioCtx.createAnalyser();
-  analyserChroma.fftSize = 16384;               // fina resolución de frecuencia p/ acordes
-  analyserChroma.smoothingTimeConstant = 0.4;
+  analyserChroma.fftSize = 8192;                // resolución vs. latencia: 8192 responde más rápido
+  analyserChroma.smoothingTimeConstant = 0.2;
   freqBuf = new Float32Array(analyserChroma.frequencyBinCount);
 
   sourceNode.connect(analyserPitch);
@@ -367,6 +367,16 @@ function freqToNote(freq){
   return {name:NOTE_NAMES[(midi%12+12)%12], midi, cents};
 }
 
+// --- Suavizado del tono: mediana (descarta saltos/errores de octava) ---
+const PITCH_HIST=6;
+let pitchHist=[];
+function smoothPitchMedian(freq){
+  pitchHist.push(freq);
+  if(pitchHist.length>PITCH_HIST) pitchHist.shift();
+  const s=[...pitchHist].sort((a,b)=>a-b);
+  return s[Math.floor(s.length/2)];
+}
+
 // ===================================================================
 //  CROMAGRAMA  —  reparte la energía del FFT en 12 clases de altura
 // ===================================================================
@@ -405,7 +415,7 @@ let lastFrame=performance.now(), fps=0;
 
 // estabilización de acorde (evita parpadeo): confirmar N cuadros seguidos
 let stableChord=null, stableCount=0;
-const STABLE_NEEDED=6;      // ~cuadros consecutivos para confirmar
+const STABLE_NEEDED=5;      // ~cuadros consecutivos para confirmar
 const SIM_MIN=0.55;         // similitud mínima
 const MARGIN_MIN=0.02;      // margen sobre el 2º mejor
 
@@ -418,8 +428,9 @@ function loop(){
 
   // ---- Afinador ----
   if(freq>0){
-    const note=freqToNote(freq);
-    updateTuner(note, freq);
+    const medFreq = smoothPitchMedian(freq);   // mediana: descarta lecturas sueltas erróneas
+    const note = freqToNote(medFreq);
+    updateTuner(note, medFreq);
   }else{
     fadeTuner();
   }
@@ -464,13 +475,17 @@ function buildStringsUI(){
   });
 }
 
+let needleEMA=50, centsEMA=0;
 function updateTuner(note, freq){
   elNote.innerHTML = note.name.replace('#','<small>#</small>');
-  const c=note.cents;
+  // EMA sobre los cents -> aguja y número estables (sin temblor)
+  centsEMA = centsEMA*0.75 + note.cents*0.25;
+  const c = Math.round(centsEMA);
   elCents.textContent = (c>0?'+':'')+c+' cents';
   // aguja: -50..+50 -> 5%..95%
-  const pos = Math.max(5, Math.min(95, 50 + c));
-  elNeedle.style.left = pos+'%';
+  const targetPos = Math.max(5, Math.min(95, 50 + centsEMA));
+  needleEMA = needleEMA*0.75 + targetPos*0.25;
+  elNeedle.style.left = needleEMA+'%';
   const inTune = Math.abs(c)<=5;
   const close = Math.abs(c)<=15;
   const color = inTune?'var(--ok)':(close?'var(--warn)':'var(--off)');
@@ -490,6 +505,7 @@ function updateTuner(note, freq){
 }
 let fadeT;
 function fadeTuner(){
+  pitchHist.length=0;                 // reiniciar mediana al quedarse sin señal
   clearTimeout(fadeT);
   fadeT=setTimeout(()=>{
     elNote.textContent='–'; elNote.style.color='var(--text)';
@@ -513,7 +529,7 @@ const RING_LEN=502;
 let targetIdx=0;
 let hits=0, attempts=0;
 let holdCount=0;           // cuánto sostuvo el acorde correcto
-const HOLD_NEEDED=8;       // cuadros correctos seguidos para "acertar"
+const HOLD_NEEDED=6;       // cuadros correctos seguidos para "acertar"
 
 function currentTarget(){ return CHORDS[targetIdx]; }
 function setTarget(i){

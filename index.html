@@ -78,7 +78,8 @@
   }
   .note-name{font-size:88px; font-weight:800; line-height:1; letter-spacing:-3px;}
   .note-name small{font-size:34px; vertical-align:super; margin-left:2px; color:var(--muted);}
-  .cents{color:var(--muted); font-size:14px; font-weight:600; margin-top:4px; height:18px;}
+  .cents{color:var(--muted); font-size:13px; font-weight:600; margin-top:6px; height:18px;}
+  .tt-dir{font-size:22px; font-weight:800; margin-top:6px; height:28px; color:var(--muted);}
 
   .meter-wrap{margin:14px 0 6px; position:relative;}
   .meter{
@@ -102,8 +103,10 @@
   }
   .string b{display:block; font-size:22px; font-weight:800;}
   .string span{font-size:10px; color:var(--muted); font-weight:600;}
-  .string.hit{border-color:var(--ok); background:rgba(74,222,128,.10);}
-  .string.hit b{color:var(--ok);}
+  .string.active{border-color:var(--brand); background:rgba(45,212,191,.12);}
+  .string.tuned{border-color:var(--ok); background:rgba(74,222,128,.10);}
+  .string.tuned b{color:var(--ok);}
+  .string.tuned b::after{content:' ✓'; font-size:14px;}
 
   .status{margin-top:auto; text-align:center; color:var(--muted); font-size:13px; line-height:1.5; padding-top:14px;}
 
@@ -209,7 +212,8 @@
   <!-- ---- Afinador ---- -->
   <section class="view active" id="view-tuner">
     <div class="note-big">
-      <div class="note-name" id="noteName">–</div>
+      <div class="note-name" id="ttString">–</div>
+      <div class="tt-dir" id="ttDir">Tocá una cuerda</div>
       <div class="cents" id="centsTxt">esperando sonido…</div>
     </div>
     <div class="meter-wrap">
@@ -218,10 +222,10 @@
         <div class="center-line"></div>
         <div class="needle" id="needle"></div>
       </div>
-      <div class="meter-labels"><span>-50 ¢</span><span>afinado</span><span>+50 ¢</span></div>
+      <div class="meter-labels"><span>♭ grave</span><span>afinada</span><span>aguda ♯</span></div>
     </div>
     <div class="strings" id="strings"></div>
-    <div class="status" id="tunerStatus">Tocá una cuerda al aire. El indicador se pone verde cuando estás afinado (±5 ¢).</div>
+    <div class="status" id="tunerStatus">Tocá cada cuerda. Se pone verde <b>solo</b> cuando está en su nota correcta (G · C · E · A).</div>
   </section>
 
   <!-- ---- Acordes ---- -->
@@ -479,14 +483,14 @@ function loop(){
   const now = performance.now();
   const chordDt = Math.min(80, now - lastChordT);   // ms desde el cuadro anterior (cap por si hubo lag)
   lastChordT = now;
-  const strongSignal = rms>0.012 || chroma.some(v=>v>0.06);   // umbral suave: detecta al primer intento
+  const strongSignal = rms>0.015 || chroma.some(v=>v>0.08);   // umbral: ignora ruido mínimo
   lastRms = rms;
   if(strongSignal){ chromaRing.push(chroma); if(chromaRing.length>CHROMA_RING) chromaRing.shift(); }
   const match = matchChord(chroma);
   handleChordDetection(match, strongSignal, chordDt);
 
-  // auto-captura para el log (sin apretar botones, manos libres)
-  if(autoCapture && strongSignal && match.chord && match.sim>=SIM_MIN && match.margin>=MARGIN_MIN
+  // auto-captura para el log (solo con acorde estable, sin ruido)
+  if(autoCapture && detectedChord
      && diagLog.length<MAX_LOG && (now-lastAutoCapT>AUTO_CAP_MS)){
     if(doCapture()) lastAutoCapT=now;
   }
@@ -503,48 +507,65 @@ function loop(){
 // ===================================================================
 //  UI · AFINADOR
 // ===================================================================
-const elNote=document.getElementById('noteName');
+const elTtString=document.getElementById('ttString');
+const elTtDir=document.getElementById('ttDir');
 const elCents=document.getElementById('centsTxt');
 const elNeedle=document.getElementById('needle');
 const elStrings=document.getElementById('strings');
 const elTunerStatus=document.getElementById('tunerStatus');
+const STR_ES={G:'Sol', C:'Do', E:'Mi', A:'La'};
 
 function buildStringsUI(){
   elStrings.innerHTML='';
   UKE_STRINGS.forEach(s=>{
     const d=document.createElement('div');
     d.className='string'; d.dataset.name=s.name;
-    d.innerHTML=`<b>${s.name}</b><span>${s.freq.toFixed(1)} Hz</span>`;
+    d.innerHTML=`<b>${s.name}</b><span>${STR_ES[s.name]}</span>`;
     elStrings.appendChild(d);
   });
 }
 
 let needleEMA=50, centsEMA=0;
 function updateTuner(note, freq){
-  elNote.innerHTML = note.name.replace('#','<small>#</small>');
-  // EMA sobre los cents -> aguja y número estables (sin temblor)
-  centsEMA = centsEMA*0.75 + note.cents*0.25;
-  const c = Math.round(centsEMA);
-  elCents.textContent = (c>0?'+':'')+c+' cents';
-  // aguja: -50..+50 -> 5%..95%
-  const targetPos = Math.max(5, Math.min(95, 50 + centsEMA));
-  needleEMA = needleEMA*0.75 + targetPos*0.25;
-  elNeedle.style.left = needleEMA+'%';
-  const inTune = Math.abs(c)<=5;
-  const close = Math.abs(c)<=15;
-  const color = inTune?'var(--ok)':(close?'var(--warn)':'var(--off)');
-  elNeedle.style.background=color;
-  elNote.style.color = inTune?'var(--ok)':'var(--text)';
-  elTunerStatus.textContent = inTune ? '¡Afinado! 🎯' : (close?'Casi… ajustá un poco.':'Girá la clavija hasta centrar la aguja.');
-
-  // resaltar cuerda más cercana
-  let nearest=null, best=1e9;
+  // Buscar la CUERDA objetivo más cercana (G/C/E/A), no cualquier nota.
+  let tgt=null, off=1e9;
   UKE_STRINGS.forEach(s=>{
-    const cents=Math.abs(1200*Math.log2(freq/s.freq));
-    if(cents<best){ best=cents; nearest=s.name; }
+    const c=1200*Math.log2(freq/s.freq);      // + = agudo, - = grave, respecto de esa cuerda
+    if(Math.abs(c)<Math.abs(off)){ off=c; tgt=s; }
   });
+  centsEMA = centsEMA*0.7 + off*0.3;
+  const c = Math.round(centsEMA);
+  const inTune = Math.abs(c)<=8;               // verde SOLO si está en la nota correcta
+  const close  = Math.abs(c)<=30;
+  const far    = Math.abs(c)>60;
+
+  elTtString.innerHTML = tgt.name+' <small>'+STR_ES[tgt.name]+'</small>';
+  elTtString.style.color = inTune?'var(--ok)':'var(--text)';
+
+  let dir, color;
+  if(inTune){ dir='¡Afinada! ✓'; color='var(--ok)'; }
+  else if(centsEMA>0){ dir = far?'Bajá ↓↓':'Bajá ↓'; color = close?'var(--warn)':'var(--off)'; }
+  else            { dir = far?'Subí ↑↑':'Subí ↑'; color = close?'var(--warn)':'var(--off)'; }
+  elTtDir.textContent = dir; elTtDir.style.color = color;
+  elNeedle.style.background = color;
+
+  elCents.textContent = (c>0?'+':'')+c+' cents respecto de '+tgt.name;
+
+  // aguja: cents puede ser grande (cuerda muy lejos) -> se pega al borde
+  const targetPos = Math.max(4, Math.min(96, 50 + centsEMA));
+  needleEMA = needleEMA*0.7 + targetPos*0.3;
+  elNeedle.style.left = needleEMA+'%';
+
+  elTunerStatus.innerHTML = inTune
+    ? '<b>'+tgt.name+' ('+STR_ES[tgt.name]+') afinada</b> 🎯'
+    : (far ? 'Estás lejos de <b>'+tgt.name+'</b> — '+dir.replace(/[↑↓]/g,'').trim().toLowerCase()+' hasta que se ponga verde'
+           : 'Casi… '+dir.replace(/[↑↓]/g,'').trim().toLowerCase());
+
+  // marcar la cuerda objetivo y recordar cuáles quedaron afinadas
   [...elStrings.children].forEach(ch=>{
-    ch.classList.toggle('hit', ch.dataset.name===nearest && best<60);
+    const isT = ch.dataset.name===tgt.name;
+    ch.classList.toggle('active', isT && !ch.classList.contains('tuned'));
+    if(isT && inTune) ch.classList.add('tuned');
   });
 }
 let fadeT;
@@ -552,10 +573,11 @@ function fadeTuner(){
   pitchHist.length=0;                 // reiniciar mediana al quedarse sin señal
   clearTimeout(fadeT);
   fadeT=setTimeout(()=>{
-    elNote.textContent='–'; elNote.style.color='var(--text)';
+    elTtString.textContent='–'; elTtString.style.color='var(--text)';
+    elTtDir.textContent='Tocá una cuerda'; elTtDir.style.color='var(--muted)';
     elCents.textContent='esperando sonido…';
     elNeedle.style.background='var(--off)';
-    [...elStrings.children].forEach(ch=>ch.classList.remove('hit'));
+    [...elStrings.children].forEach(ch=>ch.classList.remove('active'));
   }, 400);
 }
 
@@ -574,7 +596,7 @@ let targetIdx=0;
 let hits=0, attempts=0;
 let holdMs=0;              // ms que se sostuvo el acorde correcto (continuo)
 let graceMs=0;            // tolerancia a microcortes antes de reiniciar
-const HOLD_MS_NEEDED=500; // hay que sostener el acorde ~0,5 s para que cuente
+const HOLD_MS_NEEDED=200; // hay que sostener el acorde ~0,2 s para que cuente
 const GRACE_MS=120;       // un bache < 120 ms no reinicia el progreso
 
 function currentTarget(){ return CHORDS[targetIdx]; }
@@ -628,22 +650,36 @@ function drawChordDiagram(chord){
   elChordDiagram.innerHTML=svg;
 }
 
+// --- estabilización de la detección (mata parpadeo y ruido, sin frenar el reconocimiento) ---
+let detectedChord=null, candChord=null, candMs=0, lostMs=0;
+const CONFIRM_MS=90;   // hay que ver el MISMO acorde ~90 ms seguidos para darlo por detectado
+const LOST_MS=160;     // si no hay señal por este tiempo, se borra lo detectado
+
 function handleChordDetection(match, strongSignal, dt){
   const {chord,sim,margin}=match;
   const confident = strongSignal && chord && sim>=SIM_MIN && margin>=MARGIN_MIN;
 
-  const shown = confident ? chord : null;   // mostrar directo el mejor acorde confiable
+  // confirmar el mismo acorde durante CONFIRM_MS antes de aceptarlo
+  if(confident && chord===candChord){ candMs += dt; }
+  else { candChord = confident?chord:null; candMs = 0; }
+  if(candChord && candMs>=CONFIRM_MS){ detectedChord=candChord; lostMs=0; }
+
+  // borrar lo detectado solo tras un silencio sostenido (evita que titile a '–')
+  if(confident){ lostMs=0; }
+  else { lostMs += dt; if(lostMs>=LOST_MS) detectedChord=null; }
+
+  const shown = detectedChord;
   elChipDet.textContent = shown?shown.name:'–';
   elChipConf.textContent = Math.round(sim*100)+'%';
 
   const t=currentTarget();
-  const onTarget = confident && chord.name===t.name;   // scoring responsivo (sin esperar N cuadros)
+  const onTarget = shown && shown.name===t.name;
 
   if(onTarget){
     holdMs += dt;                 // sumar TIEMPO sostenido
     graceMs = GRACE_MS;
     elChipDet.classList.add('ok');
-    elDetectedTxt.innerHTML='Sostené <b>'+chord.name+'</b>… ✓';
+    elDetectedTxt.innerHTML='Sostené <b>'+shown.name+'</b>… ✓';
     setHold(Math.min(1, holdMs/HOLD_MS_NEEDED));
     if(holdMs>=HOLD_MS_NEEDED){ scoreHit(); }
   }else{

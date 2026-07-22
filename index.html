@@ -415,12 +415,14 @@ function matchChord(chroma){
 //  BUCLE DE ANÁLISIS
 // ===================================================================
 let lastFrame=performance.now(), fps=0;
+let lastChordT=performance.now();
 
 // estabilización de acorde (evita parpadeo): confirmar N cuadros seguidos
 let stableChord=null, stableCount=0;
 const STABLE_NEEDED=5;      // ~cuadros consecutivos para confirmar
 const SIM_MIN=0.55;         // similitud mínima
 const MARGIN_MIN=0.02;      // margen sobre el 2º mejor
+const SIGNAL_MIN=0.02;      // energía mínima para contar (filtra ruiditos)
 
 function loop(){
   if(!running) return;
@@ -441,14 +443,12 @@ function loop(){
   // ---- Acordes ----
   analyserChroma.getFloatFrequencyData(freqBuf);
   const chroma = computeChroma(freqBuf, audioCtx.sampleRate, analyserChroma.fftSize);
-  const hasSignal = rms>0.01 || chroma.some(v=>v>0.05);
-  let match={chord:null,sim:0,margin:0};
-  if(hasSignal){
-    match=matchChord(chroma);
-    handleChordDetection(match);
-  }else{
-    stableCount=0;
-  }
+  const now = performance.now();
+  const chordDt = Math.min(80, now - lastChordT);   // ms desde el cuadro anterior (cap por si hubo lag)
+  lastChordT = now;
+  const strongSignal = rms>SIGNAL_MIN || chroma.some(v=>v>0.12);
+  const match = matchChord(chroma);
+  handleChordDetection(match, strongSignal, chordDt);
 
   // ---- Debug ----
   const dt=performance.now()-t0;
@@ -531,8 +531,10 @@ const elChordDiagram=document.getElementById('chordDiagram');
 
 let targetIdx=0;
 let hits=0, attempts=0;
-let holdCount=0;           // cuánto sostuvo el acorde correcto
-const HOLD_NEEDED=6;       // cuadros correctos seguidos para "acertar"
+let holdMs=0;              // ms que se sostuvo el acorde correcto (continuo)
+let graceMs=0;            // tolerancia a microcortes antes de reiniciar
+const HOLD_MS_NEEDED=500; // hay que sostener el acorde ~0,5 s para que cuente
+const GRACE_MS=120;       // un bache < 120 ms no reinicia el progreso
 
 function currentTarget(){ return CHORDS[targetIdx]; }
 function setTarget(i){
@@ -541,7 +543,7 @@ function setTarget(i){
   elTargetChord.textContent=t.name;
   elTargetSub.textContent=t.sub;
   drawChordDiagram(t);
-  holdCount=0; setHold(0);
+  holdMs=0; graceMs=0; setHold(0);
   elDetectedTxt.textContent='Escuchando…';
 }
 
@@ -585,31 +587,34 @@ function drawChordDiagram(chord){
   elChordDiagram.innerHTML=svg;
 }
 
-function handleChordDetection(match){
+function handleChordDetection(match, strongSignal, dt){
   const {chord,sim,margin}=match;
-  const confident = chord && sim>=SIM_MIN && margin>=MARGIN_MIN;
+  const confident = strongSignal && chord && sim>=SIM_MIN && margin>=MARGIN_MIN;
 
   // estabilización general (para mostrar "detectado")
   if(confident && chord===stableChord){ stableCount++; }
-  else{ stableChord=chord; stableCount=1; }
-  const shown = (stableCount>=STABLE_NEEDED) ? chord : null;
+  else{ stableChord = confident?chord:null; stableCount = confident?1:0; }
+  const shown = (confident && stableCount>=STABLE_NEEDED) ? chord : null;
 
   elChipDet.textContent = shown?shown.name:'–';
   elChipConf.textContent = Math.round(sim*100)+'%';
-  elChipConf.parentElement.querySelector('.v').classList.remove('ok');
 
-  // ¿coincide con el objetivo?
   const t=currentTarget();
-  if(shown && shown.name===t.name){
-    holdCount++;
+  const onTarget = shown && shown.name===t.name;
+
+  if(onTarget){
+    holdMs += dt;                 // sumar TIEMPO sostenido, no cuadros
+    graceMs = GRACE_MS;           // recargar la tolerancia
     elChipDet.classList.add('ok');
-    elDetectedTxt.innerHTML='Detectando <b>'+shown.name+'</b> ✓';
-    setHold(Math.min(1, holdCount/HOLD_NEEDED));
-    if(holdCount>=HOLD_NEEDED){ scoreHit(); }
+    elDetectedTxt.innerHTML='Sostené <b>'+shown.name+'</b>… ✓';
+    setHold(Math.min(1, holdMs/HOLD_MS_NEEDED));
+    if(holdMs>=HOLD_MS_NEEDED){ scoreHit(); }
   }else{
     elChipDet.classList.remove('ok');
-    holdCount=Math.max(0, holdCount-1);
-    setHold(Math.min(1, holdCount/HOLD_NEEDED));
+    // un microcorte breve no reinicia; superada la gracia, el progreso cae rápido
+    if(graceMs>0 && holdMs>0){ graceMs -= dt; }
+    else { holdMs = Math.max(0, holdMs - dt*2); }   // caída x2 -> un ruidito no llega a acumular
+    setHold(Math.min(1, holdMs/HOLD_MS_NEEDED));
     elDetectedTxt.innerHTML = shown ? ('Escuché <b>'+shown.name+'</b> — probá de nuevo') : 'Escuchando…';
   }
 }
@@ -621,7 +626,7 @@ function scoreHit(){
   // avanzar al siguiente acorde del ciclo
   const next=(targetIdx+1)%CHORDS.length;
   setTimeout(()=>setTarget(next), 550);
-  holdCount=0;
+  holdMs=0; graceMs=0;
 }
 
 function setHold(p){

@@ -271,7 +271,7 @@
         <div class="bpm"><span id="bpmVal" class="tnum">80</span><small>BPM</small></div>
         <button id="bpmUp" class="rbtn">+</button>
       </div>
-      <button id="muteClick" class="pill">🔊 Clic</button>
+      <button id="muteClick" class="pill">🔊 Sonido</button>
     </div>
 
     <canvas id="track" class="track"></canvas>
@@ -1016,12 +1016,15 @@ document.querySelectorAll('.tab').forEach(tab=>{
 // ===================================================================
 let bpm=80;
 let latencyMs=null;              // compensación de latencia calibrada (ms)
+// persistencia (en Vercel guarda entre sesiones; en el preview puede no estar disponible)
+function saveLatency(){ try{ localStorage.setItem('mylele_lat', String(latencyMs)); }catch(e){} }
+function loadLatency(){ try{ const v=localStorage.getItem('mylele_lat'); if(v!==null && v!==''){ latencyMs=parseInt(v); const el=document.getElementById('latVal'); if(el) el.textContent=latencyMs+' ms'; } }catch(e){} }
 let rhythmActive=false;
 let rhythmModeCalib=false;       // true = estamos calibrando
 let clickMuted=false;
 
 const COUNT_IN=4;                // pulsos de preparación (con sonido)
-const REG_BEATS=8;              // pulsos que se registran
+const REG_BEATS=12;             // pulsos que se registran en la calibración (más = más muestras)
 const PERFECT_S=0.13, GOOD_S=0.24;  // ventanas amplias (arcade): premia la intención, no el milisegundo
 
 let beatDur=60/bpm;
@@ -1075,6 +1078,45 @@ function feedbackBlip(good){
   osc.start(t); osc.stop(t+0.05);
 }
 
+// --- acompañamiento REGGAE/ISLAND sintetizado (bajo + chop + percusión) ---
+function playSynth(time, freq, dur, type, peak){
+  if(clickMuted || !audioCtx) return;
+  const osc=audioCtx.createOscillator(), g=audioCtx.createGain();
+  osc.type=type; osc.frequency.value=freq;
+  g.gain.setValueAtTime(0.0001, time);
+  g.gain.exponentialRampToValueAtTime(peak, time+0.008);
+  g.gain.exponentialRampToValueAtTime(0.0001, time+dur);
+  osc.connect(g); g.connect(audioCtx.destination);
+  osc.start(time); osc.stop(time+dur+0.03);
+}
+function chordFreqs(name, octave){
+  const c=CHORDS.find(x=>x.name===name); if(!c) return [];
+  return c.pcs.map(pc=>261.63*Math.pow(2, pc/12 + (octave-4)));
+}
+function scheduleBacking(){
+  if(clickMuted) return;
+  const evs = songEvents.length ? songEvents : DEFAULT_EVENTS;
+  for(const e of evs){
+    const c=CHORDS.find(x=>x.name===e.chord); if(!c) continue;
+    const rootPc=c.pcs[0], dur=e.dur||4;
+    const barStart = startTime + (COUNT_IN + e.t)*beatDur;
+    const chopFreqs = chordFreqs(e.chord,5);     // acordes brillantes arriba
+    for(let b=0;b<dur;b++){
+      const bt = barStart + b*beatDur;
+      // bajo grave relajado en tiempos 1 y 3 (one drop)
+      if(b%2===0){
+        const bf = 261.63*Math.pow(2, rootPc/12 - 2);   // octava 2
+        playSynth(bt, bf, beatDur*0.55, 'sine', 0.24);
+      }
+      // el "chop" reggae en el contratiempo (la corchea del "y")
+      const up = bt + beatDur*0.5;
+      chopFreqs.forEach(f=>playSynth(up, f, 0.13, 'triangle', 0.06));
+      // golpe de percusión suave en el 3
+      if(b===2) playSynth(bt, 160, 0.09, 'square', 0.05);
+    }
+  }
+}
+
 function startRhythm(calibrate){
   if(rhythmActive || !audioCtx) return;
   rhythmModeCalib=calibrate;
@@ -1100,6 +1142,7 @@ function startRhythm(calibrate){
     totalBeats = COUNT_IN + Math.ceil(lastBeat) + 1;
     expected=[];                        // en modo acordes no usamos onsets
     for(let i=0;i<totalBeats;i++){ scheduleClick(startTime+i*beatDur, (i%4)===0); }
+    scheduleBacking();                  // 🎵 groove reggae sincronizado
     combo=0; bestCombo=0; bursts=[];
     startTrackLoop();
     document.getElementById('playBtn').textContent='● Tocando…';
@@ -1112,14 +1155,18 @@ function stopRhythm(){
   document.getElementById('playBtn').textContent='▶ Empezar a tocar';
   document.getElementById('calibBtn').textContent='🎯 Calibrar latencia';
   if(rhythmModeCalib){
-    const offs = matched.filter(m=>m!==null).map(m=>m*1000).sort((a,b)=>a-b);
+    let offs = matched.filter(m=>m!==null).map(m=>m*1000).sort((a,b)=>a-b);
     if(offs.length>=3){
-      const med = offs[Math.floor(offs.length/2)];
+      let med = offs[Math.floor(offs.length/2)];
+      // 2ª pasada: quedarse con los golpes cerca de la mediana (descarta dispersos) y recalcular
+      const near = offs.filter(v=>Math.abs(v-med)<=150);
+      if(near.length>=3){ near.sort((a,b)=>a-b); med = near[Math.floor(near.length/2)]; }
       latencyMs = Math.round(med);
+      saveLatency();
       document.getElementById('latVal').textContent = latencyMs+' ms';
-      document.getElementById('calibFb').innerHTML='Latencia detectada: <b>'+latencyMs+' ms</b>. Ya queda compensada.';
+      document.getElementById('calibFb').innerHTML='Latencia detectada: <b>'+latencyMs+' ms</b> (de '+offs.length+' golpes). Ya queda compensada y guardada.';
     }else{
-      document.getElementById('calibFb').textContent='Pocos golpes para calibrar. Probá de nuevo siguiendo el pulso visual.';
+      document.getElementById('calibFb').textContent='Junté pocos golpes ('+offs.length+'). Probá de nuevo golpeando junto a cada clic.';
     }
     const d=document.getElementById('calibDot'); d.classList.remove('count','beat','pulse');
   }else{
@@ -1142,8 +1189,10 @@ function registerHit(t){
     if(d<best){ best=d; bi=k; }
   }
   if(bi<0) return;
-  // descartar golpes demasiado lejos de cualquier pulso (basura o medio tiempo)
-  if(best > beatDur*0.45) return;
+  // descartar golpes demasiado lejos. En calibración la ventana es amplia
+  // (la latencia puede ser grande, ej. 303 ms); en el juego es más ajustada.
+  const rejectWin = rhythmModeCalib ? Math.min(beatDur*0.9, 0.6) : beatDur*0.45;
+  if(best > rejectWin) return;
 
   const rawOff = t - expected[bi];             // + = tarde, - = temprano
   const comp = (latencyMs||0)/1000;
@@ -1361,11 +1410,11 @@ document.getElementById('bpmDown').addEventListener('click',()=>{ if(!rhythmActi
 document.getElementById('muteClick').addEventListener('click',()=>{
   clickMuted=!clickMuted;
   const b=document.getElementById('muteClick');
-  b.textContent = clickMuted?'🔇 Clic':'🔊 Clic'; b.classList.toggle('off',clickMuted);
+  b.textContent = clickMuted?'🔇 Sonido':'🔊 Sonido'; b.classList.toggle('off',clickMuted);
 });
 document.getElementById('playBtn').addEventListener('click',()=>{ if(!rhythmActive) startRhythm(false); });
 document.getElementById('calibBtn').addEventListener('click',()=>{ if(!rhythmActive){ document.getElementById('rhythmFb').textContent='Calibrando: seguí el latido visual con golpes.'; startRhythm(true);} });
-document.getElementById('resetLat').addEventListener('click',()=>{ latencyMs=null; document.getElementById('latVal').textContent='sin calibrar'; });
+document.getElementById('resetLat').addEventListener('click',()=>{ latencyMs=null; try{localStorage.removeItem('mylele_lat');}catch(e){} document.getElementById('latVal').textContent='sin calibrar'; });
 document.getElementById('rCaptureBtn').addEventListener('click',()=>{ rLogOn=!rLogOn; updateRCaptureBtn(); });
 document.getElementById('rCopyLogBtn').addEventListener('click',async()=>{
   const t=document.getElementById('rLogText'); if(!t.value){ alert('Log vacío.'); return; }
@@ -1377,7 +1426,7 @@ document.getElementById('rCopyLogBtn').addEventListener('click',async()=>{
 document.getElementById('rClearLogBtn').addEventListener('click',()=>{ rLog=[]; renderRLog(); });
 
 // init
-setTarget(0); updateScore(); updateCaptureBtn(); renderTrack(); updateRCaptureBtn(); loadContent();
+setTarget(0); updateScore(); updateCaptureBtn(); renderTrack(); updateRCaptureBtn(); loadLatency(); loadContent();
 </script>
 </body>
 </html>

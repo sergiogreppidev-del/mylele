@@ -289,18 +289,19 @@ const UKE_STRINGS = [
 ];
 
 // Detección RESTRINGIDA: solo estos 4 acordes (el set de principiante).
-// Cada plantilla = clases de altura presentes (0=C,1=C#,...,11=B).
-// frets/fingers: por cuerda [G, C, E, A]. 0 = cuerda al aire.
+// pcs = [raíz, tercera, quinta].  w = peso de cada una en la plantilla.
+// Clave (validada con datos reales): el G exige su tercera (B/Si) y baja el peso
+// del D, porque el ukelele reentrante mete mucho "D fantasma" en la C y el G se la robaba.
 const CHORDS = [
-  {name:'C',  sub:'Do mayor',  pcs:[0,4,7],  frets:[0,0,0,3], fingers:[0,0,0,3]},  // C E G
-  {name:'Am', sub:'La menor',  pcs:[9,0,4],  frets:[2,0,0,0], fingers:[2,0,0,0]},  // A C E
-  {name:'F',  sub:'Fa mayor',  pcs:[5,9,0],  frets:[2,0,1,0], fingers:[2,0,1,0]},  // F A C
-  {name:'G',  sub:'Sol mayor', pcs:[7,11,2], frets:[0,2,3,2], fingers:[0,1,3,2]},  // G B D
+  {name:'C',  sub:'Do mayor',  pcs:[0,4,7],  w:[1.3,1.0,1.0], frets:[0,0,0,3], fingers:[0,0,0,3]},  // C E G
+  {name:'Am', sub:'La menor',  pcs:[9,0,4],  w:[1.3,1.0,1.0], frets:[2,0,0,0], fingers:[2,0,0,0]},  // A C E
+  {name:'F',  sub:'Fa mayor',  pcs:[5,9,0],  w:[1.3,1.0,1.0], frets:[2,0,1,0], fingers:[2,0,1,0]},  // F A C
+  {name:'G',  sub:'Sol mayor', pcs:[7,11,2], w:[1.0,1.6,0.5], frets:[0,2,3,2], fingers:[0,1,3,2]},  // G B D
 ];
-// Vectores plantilla normalizados (raíz un poco más pesada)
+// Vectores plantilla normalizados
 CHORDS.forEach(c=>{
   const v=new Array(12).fill(0);
-  c.pcs.forEach((pc,i)=>{ v[pc] = (i===0?1.3:1.0); });
+  c.pcs.forEach((pc,i)=>{ v[pc] = c.w[i]; });
   const norm=Math.hypot(...v);
   c.tpl=v.map(x=>x/norm);
 });

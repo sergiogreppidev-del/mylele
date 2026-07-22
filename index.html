@@ -146,6 +146,22 @@
     color:var(--muted); font:inherit; font-weight:700; padding:12px; border-radius:12px; cursor:pointer;
   }
 
+  /* ---------- Log de diagnóstico ---------- */
+  .log-tools{margin-top:18px; border-top:1px solid var(--line); padding-top:14px;}
+  #captureBtn{
+    width:100%; border:none; cursor:pointer; font:inherit; font-weight:800; font-size:15px;
+    color:#05201d; background:var(--brand); padding:14px; border-radius:12px;
+  }
+  #captureBtn:active{transform:scale(.98);}
+  .log-hint{color:var(--muted); font-size:12px; line-height:1.5; margin:10px 0;}
+  #logText{
+    width:100%; height:120px; background:#0d0b12; color:var(--brand); border:1px solid var(--line);
+    border-radius:12px; padding:10px; font-family:ui-monospace,Menlo,Consolas,monospace; font-size:11px;
+    resize:vertical; margin-top:4px;
+  }
+  .log-row{display:flex; gap:8px; margin-top:8px;}
+  .log-row .ghost{margin-top:0; flex:1; padding:10px; font-size:13px;}
+
   /* ---------- Debug ---------- */
   #debugtoggle{background:none;border:none;color:var(--muted);font:inherit;font-size:12px;font-weight:600;cursor:pointer;}
   #debug{
@@ -231,6 +247,16 @@
       <div class="scorebox"><div class="n tnum" id="scAcc">–</div><div class="l">Precisión</div></div>
     </div>
     <button class="ghost" id="resetScore">Reiniciar ejercicio</button>
+
+    <div class="log-tools">
+      <button id="captureBtn">🎙 Capturar muestra (<span id="logCount">0</span>)</button>
+      <div class="log-hint">Afiná cada nota en el afinador, volvé acá, tocá el acorde objetivo y —mientras suena— tocá "Capturar". Repetí con los 4 acordes (varias veces cada uno). Después copiá el log y mandámelo.</div>
+      <textarea id="logText" readonly placeholder="Las muestras capturadas van a aparecer acá…"></textarea>
+      <div class="log-row">
+        <button class="ghost" id="copyLogBtn">Copiar log</button>
+        <button class="ghost" id="clearLogBtn">Borrar</button>
+      </div>
+    </div>
   </section>
 
   <div id="debug" style="margin:0 20px;">
@@ -424,6 +450,11 @@ const SIM_MIN=0.55;         // similitud mínima
 const MARGIN_MIN=0.02;      // margen sobre el 2º mejor
 const SIGNAL_MIN=0.02;      // energía mínima para contar (filtra ruiditos)
 
+// --- Log de diagnóstico (para tunear la detección con datos reales) ---
+let lastRms=0;
+let chromaRing=[]; const CHROMA_RING=12;   // ~200 ms de cromagramas recientes
+let diagLog=[];
+
 function loop(){
   if(!running) return;
   const t0=performance.now();
@@ -447,6 +478,8 @@ function loop(){
   const chordDt = Math.min(80, now - lastChordT);   // ms desde el cuadro anterior (cap por si hubo lag)
   lastChordT = now;
   const strongSignal = rms>SIGNAL_MIN || chroma.some(v=>v>0.12);
+  lastRms = rms;
+  if(strongSignal){ chromaRing.push(chroma); if(chromaRing.length>CHROMA_RING) chromaRing.shift(); }
   const match = matchChord(chroma);
   handleChordDetection(match, strongSignal, chordDt);
 
@@ -533,7 +566,7 @@ let targetIdx=0;
 let hits=0, attempts=0;
 let holdMs=0;              // ms que se sostuvo el acorde correcto (continuo)
 let graceMs=0;            // tolerancia a microcortes antes de reiniciar
-const HOLD_MS_NEEDED=250; // hay que sostener el acorde ~0,5 s para que cuente
+const HOLD_MS_NEEDED=500; // hay que sostener el acorde ~0,5 s para que cuente
 const GRACE_MS=120;       // un bache < 120 ms no reinicia el progreso
 
 function currentTarget(){ return CHORDS[targetIdx]; }
@@ -647,6 +680,73 @@ function updateScore(){
 }
 document.getElementById('resetScore').addEventListener('click',()=>{
   hits=0; attempts=0; updateScore(); setTarget(0);
+});
+
+// ===================================================================
+//  LOG DE DIAGNÓSTICO
+// ===================================================================
+function simsFor(chroma){
+  return CHORDS.map(c=>{
+    let d=0; for(let i=0;i<12;i++) d+=chroma[i]*c.tpl[i];
+    return {name:c.name, sim:d};
+  });
+}
+function captureSample(){
+  if(chromaRing.length<3){
+    alert('No hay suficiente señal. Tocá el acorde y, mientras SUENA, tocá "Capturar".');
+    return;
+  }
+  // promediar los cromagramas recientes -> muestra estable
+  const avg=new Array(12).fill(0);
+  chromaRing.forEach(fr=>{ for(let i=0;i<12;i++) avg[i]+=fr[i]; });
+  for(let i=0;i<12;i++) avg[i]/=chromaRing.length;
+  const norm=Math.hypot(...avg); if(norm>0) for(let i=0;i<12;i++) avg[i]/=norm;
+
+  const sims=simsFor(avg).sort((a,b)=>b.sim-a.sim);
+  const simMap={}; CHORDS.forEach(c=>{ simMap[c.name]=+sims.find(s=>s.name===c.name).sim.toFixed(3); });
+  diagLog.push({
+    n: diagLog.length+1,
+    target: currentTarget().name,
+    best: sims[0].name,
+    margin: +(sims[0].sim - sims[1].sim).toFixed(3),
+    rms: +lastRms.toFixed(3),
+    sims: simMap,
+    chroma: avg.map(v=>+v.toFixed(3))
+  });
+  renderLog();
+  // feedback visual breve
+  const b=document.getElementById('captureBtn');
+  const prev=b.style.background; b.style.background='var(--ok)';
+  setTimeout(()=>b.style.background=prev, 200);
+}
+function renderLog(){
+  document.getElementById('logCount').textContent=diagLog.length;
+  const lines=diagLog.map(e=>{
+    const s=CHORDS.map(c=>c.name+':'+e.sims[c.name]).join(' ');
+    return `#${e.n} obj=${e.target} -> ${e.best} (margen ${e.margin}, rms ${e.rms}) | ${s}`;
+  });
+  const header='NALU chord log · '+new Date().toLocaleString();
+  document.getElementById('logText').value =
+    header+'\n'+lines.join('\n')+'\n\n--- JSON (para analisis) ---\n'+JSON.stringify(diagLog);
+}
+async function copyLog(){
+  const t=document.getElementById('logText');
+  if(!t.value){ alert('El log está vacío. Capturá al menos una muestra.'); return; }
+  const btn=document.getElementById('copyLogBtn');
+  try{
+    await navigator.clipboard.writeText(t.value);
+    btn.textContent='Copiado ✓';
+  }catch(e){
+    t.focus(); t.select();
+    try{ document.execCommand('copy'); btn.textContent='Copiado ✓'; }
+    catch(_){ btn.textContent='Seleccioná y copiá'; }
+  }
+  setTimeout(()=>btn.textContent='Copiar log', 1500);
+}
+document.getElementById('captureBtn').addEventListener('click', captureSample);
+document.getElementById('copyLogBtn').addEventListener('click', copyLog);
+document.getElementById('clearLogBtn').addEventListener('click',()=>{
+  diagLog=[]; renderLog();
 });
 
 // ===================================================================

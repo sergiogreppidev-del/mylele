@@ -12,7 +12,7 @@ async function supaGet(path){
   if(!r.ok) throw new Error('supa '+r.status);
   return r.json();
 }
-function setContentStatus(txt,cls){ const el=document.getElementById('contentStatus'); if(el){ el.innerHTML=txt; el.className='content-status'+(cls?' '+cls:''); } }
+function setContentStatus(txt,cls){ const el=document.getElementById('contentStatus'); if(el){ el.innerHTML=txt; el.className='status'+(cls==='warn'?' warn':''); } }
 
 async function loadContent(){
   try{

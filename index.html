@@ -3,152 +3,138 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<meta name="theme-color" content="#14121A">
-<title>MyLele · Aprendé ukelele</title>
+<meta name="theme-color" content="#4FC9F5">
+<title>MyLele · Aprendé ukelele jugando</title>
 <link rel="stylesheet" href="styles.css">
 </head>
 <body>
 
-<!-- ============ INICIO ============ -->
-<div id="start">
-  <svg class="wavemark" viewBox="0 0 120 60" fill="none">
-    <path d="M2 40 Q 17 12, 32 30 T 62 30 T 92 30 T 118 22" stroke="#2DD4BF" stroke-width="5" stroke-linecap="round"/>
-    <path d="M2 50 Q 17 26, 32 42 T 62 42 T 92 42 T 118 36" stroke="#2DD4BF" stroke-width="3" stroke-linecap="round" opacity="0.4"/>
-  </svg>
-  <h1>Nalu</h1>
-  <p class="tag">Spike de detección por micrófono. Afiná tu ukelele y probá si reconoce tus acordes en tiempo real.</p>
-  <button class="cta" id="startBtn">Activar micrófono</button>
-  <p class="hint">Soná una cuerda o un acorde cuando la app esté escuchando. Funciona mejor en un lugar silencioso, con el ukelele cerca del teléfono.</p>
-</div>
+<div class="bg"></div><div class="wave"></div>
 
-<!-- ============ APP ============ -->
-<header>
-  <div class="brand-row">
-    <span class="dot" id="liveDot"></span>
-    <b>Nalu</b><span>spike</span>
+<!-- ══════════ INICIO ══════════ -->
+<section class="screen on home" id="screen-home">
+  <div class="uke">🎸</div>
+  <h1 class="logo">My<span>Lele</span></h1>
+  <p class="tagline">Aprendé ukelele jugando</p>
+  <button class="cbtn sun play-big" id="startBtn">▶ JUGAR</button>
+  <div class="tools">
+    <button class="cbtn sky sm" data-go="tuner">🎸 Afinar</button>
+    <button class="cbtn melon sm" data-go="calib">🎯 Calibrar latencia</button>
   </div>
+  <p class="tip">🎧 Usá auriculares con cable para que el sonido no moleste al micrófono</p>
+</section>
+
+<!-- ══════════ ELEGIR MODO ══════════ -->
+<section class="screen" id="screen-mode">
+  <div class="top"><button class="cbtn ghost back" data-go="home">←</button><h2>¿Qué practicamos?</h2></div>
+  <div class="modes">
+    <button class="mode n" data-mode="melody"><span class="ico">🎵</span>
+      <span><b>Notas</b><small>Una cuerda a la vez. Ideal para empezar.</small></span></button>
+    <button class="mode c" data-mode="chords"><span class="ico">🎹</span>
+      <span><b>Acordes</b><small>Formá acordes y cambialos a tiempo.</small></span></button>
+    <button class="mode p" data-go="practice"><span class="ico">🖐</span>
+      <span><b>Práctica libre</b><small>Sin reloj: repasá acordes a tu ritmo.</small></span></button>
+  </div>
+</section>
+
+<!-- ══════════ NIVELES ══════════ -->
+<section class="screen" id="screen-levels">
+  <div class="top"><button class="cbtn ghost back" data-go="mode">←</button><h2 id="levelsTitle">Niveles</h2></div>
+  <div class="status" id="contentStatus">Cargando niveles…</div>
+  <div class="map" id="levels"></div>
+</section>
+
+<!-- ══════════ JUEGO ══════════ -->
+<section class="screen" id="screen-game">
+  <div class="top"><button class="cbtn ghost back" data-go="levels">←</button><h2 id="gameTitle">Nivel</h2></div>
+  <div class="hud">
+    <div class="bpm">
+      <button class="rbtn" id="bpmDown">–</button>
+      <div class="v tnum"><span id="bpmVal">80</span><small>BPM</small></div>
+      <button class="rbtn" id="bpmUp">+</button>
+    </div>
+    <button class="pill" id="muteClick">🔊 Sonido</button>
+  </div>
+  <canvas id="track" class="track"></canvas>
+  <div class="fb" id="rhythmFb">Tocá Empezar</div>
+  <div class="chips">
+    <div class="chip ok"><div class="n tnum" id="rPerfect">0</div><div class="l">Justos</div></div>
+    <div class="chip mid"><div class="n tnum" id="rGood">0</div><div class="l">Cerca</div></div>
+    <div class="chip no"><div class="n tnum" id="rMiss">0</div><div class="l">Fuera</div></div>
+  </div>
+  <button class="cbtn lime wide" id="playBtn">▶ Empezar</button>
+</section>
+
+<!-- ══════════ AFINADOR ══════════ -->
+<section class="screen" id="screen-tuner">
+  <div class="top"><button class="cbtn ghost back" data-go="home">←</button><h2>Afinador</h2></div>
+  <div class="tuner-note" id="ttString">–</div>
+  <div class="dir" id="ttDir">Tocá una cuerda</div>
+  <div class="cents" id="centsTxt">esperando sonido…</div>
+  <div class="meter">
+    <div class="ticks"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+    <div class="center-line"></div><div class="needle" id="needle"></div>
+  </div>
+  <div class="mlbl"><span>♭ grave</span><span>afinada</span><span>aguda ♯</span></div>
+  <div class="strings" id="strings"></div>
+  <div class="hint" id="tuneMode">Tocá una cuerda para fijarla</div>
+  <div class="hint" id="tunerStatus">Se pone verde <b>solo</b> cuando la cuerda está en su nota (G · C · E · A)</div>
+</section>
+
+<!-- ══════════ CALIBRACIÓN ══════════ -->
+<section class="screen" id="screen-calib">
+  <div class="top"><button class="cbtn ghost back" data-go="home">←</button><h2>Calibrar latencia</h2></div>
+  <div class="calib-dot" id="calibDot"></div>
+  <div class="fb" id="calibFb">Suena una cuenta de 4. Después golpeá junto a cada clic.</div>
+  <button class="cbtn melon wide" id="calibBtn">🎯 Calibrar</button>
+  <div class="lat">Latencia: <b id="latVal">sin calibrar</b> <button class="mini" id="resetLat">reset</button></div>
+  <div class="hint">Mide cuánto tarda el micrófono en escucharte, para que el juego puntúe justo.</div>
+  <div class="tools-box">
+    <button class="logbtn" id="rCaptureBtn">○ Registrar desfases: OFF · muestras: 0</button>
+    <div class="loghint">Solo para diagnóstico: registra los desfases y te deja copiarlos.</div>
+    <textarea id="rLogText" readonly placeholder="Los desfases aparecen acá…"></textarea>
+    <div class="row2"><button class="cbtn ghost sm" id="rCopyLogBtn">Copiar</button>
+      <button class="cbtn ghost sm" id="rClearLogBtn">Borrar</button></div>
+  </div>
+</section>
+
+<!-- ══════════ PRÁCTICA LIBRE DE ACORDES ══════════ -->
+<section class="screen" id="screen-practice">
+  <div class="top"><button class="cbtn ghost back" data-go="mode">←</button><h2>Práctica libre</h2>
+    <span class="dot" id="liveDot"></span></div>
+  <div class="card tgt">
+    <div class="cs">TOCÁ ESTE ACORDE</div>
+    <div class="cn" id="targetChord">C</div>
+    <div class="cs" id="targetSub">Do mayor</div>
+    <div class="diagram" id="chordDiagram"></div>
+    <div class="holdbar"><div class="holdbar-fill" id="holdFill"></div></div>
+    <div class="detected" id="detectedTxt">Escuchando…</div>
+  </div>
+  <div class="kv">
+    <div class="b"><div class="k">Detectado</div><div class="v" id="chipDet">–</div></div>
+    <div class="b"><div class="k">Confianza</div><div class="v tnum" id="chipConf">0%</div></div>
+  </div>
+  <div class="kv">
+    <div class="b"><div class="k">Aciertos</div><div class="v tnum" id="scHit">0</div></div>
+    <div class="b"><div class="k">Intentos</div><div class="v tnum" id="scTot">0</div></div>
+    <div class="b"><div class="k">Precisión</div><div class="v tnum" id="scAcc">–</div></div>
+  </div>
+  <button class="cbtn ghost wide" id="resetScore">Reiniciar</button>
   <button id="debugtoggle">Datos técnicos</button>
-</header>
-
-<div class="tabs">
-  <div class="tab active" data-view="play">Tocar</div>
-  <div class="tab" data-view="chords">Acordes</div>
-  <div class="tab" data-view="settings">Ajustes</div>
-</div>
-
-<main>
-  <!-- ---- Tocar (interactivo) ---- -->
-  <section class="view active" id="view-play">
-    <div class="content-status" id="contentStatus">Cargando niveles…</div>
-    <div class="levels" id="levels"></div>
-    <div class="rhythm-top">
-      <div class="bpm-ctl">
-        <button id="bpmDown" class="rbtn">–</button>
-        <div class="bpm"><span id="bpmVal" class="tnum">80</span><small>BPM</small></div>
-        <button id="bpmUp" class="rbtn">+</button>
-      </div>
-      <button id="muteClick" class="pill">🔊 Sonido</button>
-    </div>
-
-    <canvas id="track" class="track"></canvas>
-
-    <div class="rhythm-fb" id="rhythmFb">Elegí un nivel y tocá "Empezar".</div>
-
-    <div class="scorebar">
-      <div class="scorebox"><div class="n tnum" id="rPerfect">0</div><div class="l">Justos</div></div>
-      <div class="scorebox"><div class="n tnum" id="rGood">0</div><div class="l">Cerca</div></div>
-      <div class="scorebox"><div class="n tnum" id="rMiss">0</div><div class="l">Fuera</div></div>
-    </div>
-
-    <button id="playBtn" class="cta-lite primary">▶ Empezar</button>
-    <div class="rhythm-hint">🎧 Con auriculares el sonido no ensucia el micrófono. Calibrá la latencia en <b>Ajustes</b> antes de tocar.</div>
-  </section>
-
-  <!-- ---- Acordes ---- -->
-  <section class="view" id="view-chords">
-    <div class="target-card">
-      <div class="target-label">Tocá este acorde</div>
-      <div class="chord-head">
-        <div class="chord-big" id="targetChord">C</div>
-        <div class="chord-sub" id="targetSub">Do mayor</div>
-      </div>
-      <div class="chord-diagram" id="chordDiagram"></div>
-      <div class="holdbar"><div class="holdbar-fill" id="holdFill"></div></div>
-      <div class="detected" id="detectedTxt">Escuchando…</div>
-    </div>
-
-    <div class="diagram">
-      <div class="chip"><div class="k">Detectado</div><div class="v" id="chipDet">–</div></div>
-      <div class="chip"><div class="k">Confianza</div><div class="v tnum" id="chipConf">0%</div></div>
-    </div>
-
-    <div class="scorebar">
-      <div class="scorebox"><div class="n tnum" id="scHit">0</div><div class="l">Aciertos</div></div>
-      <div class="scorebox"><div class="n tnum" id="scTot">0</div><div class="l">Intentos</div></div>
-      <div class="scorebox"><div class="n tnum" id="scAcc">–</div><div class="l">Precisión</div></div>
-    </div>
-    <button class="ghost" id="resetScore">Reiniciar ejercicio</button>
-
-    <div class="log-tools">
-      <button id="captureBtn">○ Auto-captura: OFF · muestras: 0</button>
-      <div class="log-hint">Afiná las notas, activá la <b>auto-captura</b> y tocá los 4 acordes normalmente (sin apretar nada). Se guardan muestras solas mientras tocás. Después "Copiar log" y me lo pasás.</div>
-      <textarea id="logText" readonly placeholder="Las muestras van a aparecer acá…"></textarea>
-      <div class="log-row">
-        <button class="ghost" id="copyLogBtn">Copiar log</button>
-        <button class="ghost" id="clearLogBtn">Borrar</button>
-      </div>
-    </div>
-  </section>
-
-  <!-- ---- Ajustes (afinador + calibración) ---- -->
-  <section class="view" id="view-settings">
-    <div class="settings-h">🎸 Afinador</div>
-    <div class="note-big">
-      <div class="note-name" id="ttString">–</div>
-      <div class="tt-dir" id="ttDir">Tocá una cuerda</div>
-      <div class="cents" id="centsTxt">esperando sonido…</div>
-    </div>
-    <div class="meter-wrap">
-      <div class="meter">
-        <div class="ticks"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
-        <div class="center-line"></div>
-        <div class="needle" id="needle"></div>
-      </div>
-      <div class="meter-labels"><span>♭ grave</span><span>afinada</span><span>aguda ♯</span></div>
-    </div>
-    <div class="tune-mode" id="tuneMode">Tocá una cuerda abajo para fijarla, o afiná en automático.</div>
-    <div class="strings" id="strings"></div>
-    <div class="status" id="tunerStatus">Tocá cada cuerda. Se pone verde <b>solo</b> cuando está en su nota correcta (G · C · E · A).</div>
-
-    <div class="settings-sep"></div>
-
-    <div class="settings-h">🎯 Calibración de latencia</div>
-    <div class="calib-visual"><div class="calib-dot" id="calibDot"></div></div>
-    <div class="rhythm-fb" id="calibFb">Suena una cuenta de 4 y después, en silencio, seguí el pulso con golpes. Mide cuánto tarda el micrófono en escucharte.</div>
-    <button id="calibBtn" class="cta-lite">🎯 Calibrar latencia</button>
-    <div class="latency-line">Latencia detectada: <b id="latVal">sin calibrar</b> <button id="resetLat" class="mini">reset</button></div>
-    <div class="rhythm-hint">🎧 Usá auriculares para calibrar con precisión.</div>
-
-    <div class="log-tools">
-      <button id="rCaptureBtn">○ Registrar desfases: OFF · muestras: 0</button>
-      <div class="log-hint">Para ajustar con datos: activá esto, calibrá o tocá una ronda, y copiame el log.</div>
-      <textarea id="rLogText" readonly placeholder="Los desfases van a aparecer acá…"></textarea>
-      <div class="log-row">
-        <button class="ghost" id="rCopyLogBtn">Copiar log</button>
-        <button class="ghost" id="rClearLogBtn">Borrar</button>
-      </div>
-    </div>
-  </section>
-
-  <div id="debug" style="margin:0 20px;">
-    <div>Frecuencia: <span id="dFreq">–</span> Hz &nbsp;·&nbsp; RMS: <span id="dRms">–</span></div>
-    <div>Mejor acorde: <span id="dChord">–</span> &nbsp;·&nbsp; sim: <span id="dSim">–</span> &nbsp;·&nbsp; margen: <span id="dMargin">–</span></div>
-    <div>Cromagrama (barras) vs plantilla del acorde objetivo (amarillo):</div>
-    <div id="chromabars"></div>
-    <div class="chroma-lbls" id="chromaLbls"></div>
-    <div style="margin-top:6px">Cuadros/seg: <span id="dFps">–</span> &nbsp;·&nbsp; ms/análisis: <span id="dMs">–</span></div>
+  <div id="debug">
+    <div>Frecuencia: <span id="dFreq">–</span> Hz · RMS: <span id="dRms">–</span></div>
+    <div>Acorde: <span id="dChord">–</span> · sim: <span id="dSim">–</span> · margen: <span id="dMargin">–</span></div>
+    <div id="chromabars"></div><div class="chroma-lbls" id="chromaLbls"></div>
+    <div>FPS: <span id="dFps">–</span> · ms: <span id="dMs">–</span></div>
   </div>
-</main>
+  <div class="tools-box">
+    <button class="logbtn" id="captureBtn">○ Auto-captura: OFF · muestras: 0</button>
+    <div class="loghint">Diagnóstico de acordes: guarda muestras mientras tocás.</div>
+    <textarea id="logText" readonly placeholder="Las muestras aparecen acá…"></textarea>
+    <div class="row2"><button class="cbtn ghost sm" id="copyLogBtn">Copiar</button>
+      <button class="cbtn ghost sm" id="clearLogBtn">Borrar</button></div>
+  </div>
+</section>
 
 <script src="config.js"></script>
 <script src="content.js"></script>
@@ -157,5 +143,6 @@
 <script src="tuner.js"></script>
 <script src="chords.js"></script>
 <script src="game.js"></script>
+<script src="ui.js"></script>
 </body>
 </html>

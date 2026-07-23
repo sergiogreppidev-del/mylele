@@ -43,12 +43,12 @@ function drawChordDiagram(chord){
   for(let f=0; f<=nFr; f++){
     const y=top+f*fSpace;
     const sw=(f===0)?4:1.4;
-    svg+=`<line x1="${left}" y1="${y}" x2="${right}" y2="${y}" stroke="#3a3346" stroke-width="${sw}" stroke-linecap="round"/>`;
+    svg+=`<line x1="${left}" y1="${y}" x2="${right}" y2="${y}" stroke="#3A2A63" stroke-width="${sw}" stroke-linecap="round"/>`;
   }
   // cuerdas (líneas verticales)
   for(let s=0; s<nStr; s++){
     const x=left+s*sSpace;
-    svg+=`<line x1="${x}" y1="${top}" x2="${x}" y2="${bottom}" stroke="#3a3346" stroke-width="1.4"/>`;
+    svg+=`<line x1="${x}" y1="${top}" x2="${x}" y2="${bottom}" stroke="#3A2A63" stroke-width="1.4"/>`;
   }
   // marcadores por cuerda
   for(let s=0; s<nStr; s++){
@@ -57,14 +57,14 @@ function drawChordDiagram(chord){
     const fg=chord.fingers[s];
     if(fr===0){
       // cuerda al aire: "O" sobre la cejuela
-      svg+=`<circle cx="${x}" cy="20" r="6" fill="none" stroke="#9A93A6" stroke-width="1.6"/>`;
+      svg+=`<circle cx="${x}" cy="20" r="6" fill="none" stroke="#6B5A93" stroke-width="1.6"/>`;
     }else{
       const y=top+(fr-0.5)*fSpace;
-      svg+=`<circle cx="${x}" cy="${y}" r="10" fill="#2DD4BF"/>`;
-      if(fg>0) svg+=`<text x="${x}" y="${y+0.5}" fill="#05201d" font-size="12" font-weight="800" text-anchor="middle" dominant-baseline="central">${fg}</text>`;
+      svg+=`<circle cx="${x}" cy="${y}" r="10" fill="#FF5F7E"/>`;
+      if(fg>0) svg+=`<text x="${x}" y="${y+0.5}" fill="#FFFFFF" font-size="12" font-weight="800" text-anchor="middle" dominant-baseline="central">${fg}</text>`;
     }
     // etiqueta de la cuerda abajo
-    svg+=`<text x="${x}" y="150" fill="#9A93A6" font-size="11" font-weight="700" text-anchor="middle">${strings[s]}</text>`;
+    svg+=`<text x="${x}" y="150" fill="#6B5A93" font-size="11" font-weight="700" text-anchor="middle">${strings[s]}</text>`;
   }
   svg+=`</svg>`;
   elChordDiagram.innerHTML=svg;

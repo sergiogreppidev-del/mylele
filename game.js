@@ -110,14 +110,7 @@ document.getElementById('debugtoggle').addEventListener('click',()=>{
 });
 
 // ---------- Tabs ----------
-document.querySelectorAll('.tab').forEach(tab=>{
-  tab.addEventListener('click',()=>{
-    document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
-    document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
-    tab.classList.add('active');
-    document.getElementById('view-'+tab.dataset.view).classList.add('active');
-  });
-});
+// (La navegación la maneja ui.js)
 
 // ===================================================================
 //  MÓDULO DE RITMO (metrónomo + rasgueo + calibración de latencia)
@@ -342,7 +335,7 @@ function spawnBurst(good, y){
 }
 
 // --- paleta / carriles / helpers de dibujo ---
-const ELEM_COLORS={C:'#4ADE80',Am:'#FB923C',F:'#3B82F6',G:'#A855F7',E:'#FB923C',A:'#38BDF8',D:'#F472B6',B:'#FBBF24'};
+const ELEM_COLORS={C:'#7FD94C',Am:'#A263FF',F:'#FF5F7E',G:'#4FC9F5',E:'#FF9F1C',A:'#FFC42E',D:'#FF5F7E',B:'#7FD94C'};
 const CHORD_LANE={C:0,Am:1,F:2,G:3};
 const NOTE_LANE={A:0,G:1,E:2,C:3};
 function elemColor(l){ return ELEM_COLORS[l]||'#2DD4BF'; }
@@ -377,7 +370,7 @@ function drawElem(ctx, nt, p){
     ctx.save(); ctx.globalAlpha=alpha;
     ctx.fillStyle= st==='bad'?'#9A93A6':'#ffffff';
     ctx.shadowColor='rgba(0,0,0,0.55)'; ctx.shadowBlur=6;
-    ctx.font='bold '+Math.round(Math.min(34, Math.max(18, w*0.62)))+'px system-ui';
+    ctx.font='bold '+Math.round(Math.min(34, Math.max(18, w*0.62)))+'px "Titan One",system-ui';
     ctx.textAlign='center'; ctx.textBaseline='middle';
     ctx.fillText(nt.label, p.x, (p.top+p.bottom)/2);
     ctx.restore();
@@ -389,7 +382,7 @@ function drawElem(ctx, nt, p){
     ctx.fillStyle=f; ctx.beginPath(); ctx.arc(p.x,p.y,R,0,Math.PI*2); ctx.fill();
     ctx.restore();
     ctx.globalAlpha=alpha; ctx.fillStyle= st==='bad'?'#9A93A6':'#0b1a17';
-    ctx.font='bold 15px system-ui'; ctx.textAlign='center'; ctx.textBaseline='middle';
+    ctx.font='800 16px "Baloo 2",system-ui'; ctx.textAlign='center'; ctx.textBaseline='middle';
     ctx.fillText(nt.label,p.x,p.y+1); ctx.globalAlpha=1;
   }
 }
@@ -413,16 +406,16 @@ function renderTrack(){
   const now=audioCtx?audioCtx.currentTime:0;
   const active=rhythmActive && !rhythmModeCalib;
 
-  // fondo del rectángulo de la pista
+  // fondo del mástil (panel oscuro para que los colores caramelo resalten)
   const bg=ctx.createLinearGradient(0,topY,0,botY);
-  bg.addColorStop(0,'#141c28'); bg.addColorStop(0.5,'#1b2433'); bg.addColorStop(1,'#141c28');
-  ctx.fillStyle='#0e1420'; ctx.fillRect(0,0,W,H);
+  bg.addColorStop(0,'#4A3878'); bg.addColorStop(0.5,'#3A2A63'); bg.addColorStop(1,'#4A3878');
+  ctx.fillStyle='#33245C'; ctx.fillRect(0,0,W,H);
   ctx.fillStyle=bg; rr(ctx,0,topY-8,W,trackH+16,10); ctx.fill();
 
   // cuerdas: 4 líneas rectas paralelas
   for(let lane=0;lane<LN;lane++){
     const y=laneY(lane);
-    ctx.strokeStyle='rgba(255,255,255,0.16)'; ctx.lineWidth=(lane===0||lane===LN-1)?1.6:1.1;
+    ctx.strokeStyle='rgba(255,248,231,0.42)'; ctx.lineWidth=(lane===0||lane===LN-1)?2:1.4;
     ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(W,y); ctx.stroke();
   }
 
@@ -442,15 +435,15 @@ function renderTrack(){
   }
 
   // zona de impacto: banda vertical + línea
-  ctx.fillStyle='rgba(45,212,191,'+(0.07+pulse*0.06)+')';
+  ctx.fillStyle='rgba(255,196,46,'+(0.10+pulse*0.10)+')';
   ctx.fillRect(hitX-24,topY-8,48,trackH+16);
-  ctx.save(); ctx.shadowColor='#2DD4BF'; ctx.shadowBlur=10+pulse*16;
-  ctx.strokeStyle='#2DD4BF'; ctx.lineWidth=3;
+  ctx.save(); ctx.shadowColor='#FFC42E'; ctx.shadowBlur=10+pulse*16;
+  ctx.strokeStyle='#FFC42E'; ctx.lineWidth=4;
   ctx.beginPath(); ctx.moveTo(hitX,topY-8); ctx.lineTo(hitX,botY+8); ctx.stroke(); ctx.restore();
   for(let lane=0;lane<LN;lane++){
     const y=laneY(lane);
-    ctx.save(); ctx.shadowColor='#2DD4BF'; ctx.shadowBlur=5+pulse*10;
-    ctx.strokeStyle='rgba(200,255,246,'+(0.4+pulse*0.5)+')'; ctx.lineWidth=2;
+    ctx.save(); ctx.shadowColor='#FFC42E'; ctx.shadowBlur=5+pulse*10;
+    ctx.strokeStyle='rgba(255,248,231,'+(0.5+pulse*0.5)+')'; ctx.lineWidth=2.5;
     ctx.beginPath(); ctx.arc(hitX,y,11+pulse*3,0,Math.PI*2); ctx.stroke(); ctx.restore();
   }
 
@@ -482,7 +475,7 @@ function renderTrack(){
           if(perfect) rScore.perfect++; else rScore.good++;
           combo++; bestCombo=Math.max(bestCombo,combo);
           spawnBurst(true, nt.kind==='chord'?midY:laneY(elemLane(nt.kind,nt.label))); feedbackBlip(true); updateRScore();
-          popup={t0:now, text:perfect?'¡Perfecto!':'¡Bien!', color:perfect?'#4ADE80':'#2DD4BF'};
+          popup={t0:now, text:perfect?'¡Perfecto!':'¡Bien!', color:perfect?'#7FD94C':'#FFC42E'};
         }else if(dtc>GOOD_S){ nt.state='bad'; rScore.miss++; combo=0; updateRScore(); }
       }
       if(pos[i]) drawElem(ctx, nt, pos[i]);
@@ -498,23 +491,23 @@ function renderTrack(){
     }
 
     // popup ¡Perfecto!
-    if(popup){ const age=now-popup.t0; if(age>0.7){ popup=null; } else { const pr=age/0.7; ctx.save(); ctx.globalAlpha=1-pr; ctx.fillStyle=popup.color; ctx.shadowColor=popup.color; ctx.shadowBlur=14; ctx.font='bold '+(26+pr*12)+'px system-ui'; ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.fillText(popup.text, hitX+92, topY+18); ctx.restore(); } }
+    if(popup){ const age=now-popup.t0; if(age>0.7){ popup=null; } else { const pr=age/0.7; ctx.save(); ctx.globalAlpha=1-pr; ctx.fillStyle=popup.color; ctx.shadowColor=popup.color; ctx.shadowBlur=14; ctx.font='bold '+(26+pr*12)+'px "Titan One",system-ui'; ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.fillText(popup.text, hitX+92, topY+18); ctx.restore(); } }
 
     // cuenta regresiva
     const bp=(now-startTime)/beatDur;
-    if(bp<COUNT_IN && bp>=0){ const n=COUNT_IN-Math.floor(bp), fr=bp-Math.floor(bp); ctx.save(); ctx.globalAlpha=Math.max(0.15,1-fr); ctx.fillStyle='#F2EDE9'; ctx.shadowColor='#2DD4BF'; ctx.shadowBlur=16; ctx.font='bold '+(56+(1-fr)*18)+'px system-ui'; ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.fillText(n, W*0.5, midY); ctx.restore(); }
+    if(bp<COUNT_IN && bp>=0){ const n=COUNT_IN-Math.floor(bp), fr=bp-Math.floor(bp); ctx.save(); ctx.globalAlpha=Math.max(0.15,1-fr); ctx.fillStyle='#FFF8E7'; ctx.shadowColor='#FFC42E'; ctx.shadowBlur=16; ctx.font='bold '+(56+(1-fr)*18)+'px "Titan One",system-ui'; ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.fillText(n, W*0.5, midY); ctx.restore(); }
 
     // combo
-    if(combo>=2){ ctx.save(); ctx.shadowColor='#FBBF24'; ctx.shadowBlur=8; ctx.fillStyle='#FBBF24'; ctx.font='bold 22px system-ui'; ctx.textAlign='right'; ctx.textBaseline='top'; ctx.fillText('x'+combo, W-12, 8); ctx.restore(); }
+    if(combo>=2){ ctx.save(); ctx.shadowColor='#FFC42E'; ctx.shadowBlur=8; ctx.fillStyle='#FFC42E'; ctx.font='400 24px "Titan One",system-ui'; ctx.textAlign='right'; ctx.textBaseline='top'; ctx.fillText('x'+combo, W-12, 8); ctx.restore(); }
 
     // barra de progreso
     const songLen=totalBeats*beatDur, prog=Math.max(0,Math.min(1,(now-startTime)/songLen));
-    ctx.fillStyle='rgba(255,255,255,0.12)'; rr(ctx,12,H-9,W-24,4,2); ctx.fill();
-    ctx.fillStyle='#2DD4BF'; rr(ctx,12,H-9,(W-24)*prog,4,2); ctx.fill();
+    ctx.fillStyle='rgba(255,255,255,0.18)'; rr(ctx,12,H-9,W-24,5,3); ctx.fill();
+    ctx.fillStyle='#7FD94C'; rr(ctx,12,H-9,(W-24)*prog,5,3); ctx.fill();
 
     trackRAF=requestAnimationFrame(renderTrack);
   }else{
-    ctx.fillStyle='#9A93A6'; ctx.font='13px system-ui'; ctx.textAlign='center'; ctx.textBaseline='middle';
+    ctx.fillStyle='rgba(255,248,231,.75)'; ctx.font='600 13px "Baloo 2",system-ui'; ctx.textAlign='center'; ctx.textBaseline='middle';
     ctx.fillText('Elegí un nivel y tocá Empezar · tocá cuando lleguen a la línea →', W/2, midY);
   }
 }
@@ -549,19 +542,6 @@ function rhythmTick(){
   requestAnimationFrame(rhythmTick);
 }
 
-function buildBeatbar(){
-  const bb=document.getElementById('beatbar');
-  bb.innerHTML='';
-  for(let i=0;i<totalBeats;i++){
-    const d=document.createElement('div'); d.className='beatdot';
-    d.textContent = i<COUNT_IN ? (COUNT_IN-i) : '';
-    bb.appendChild(d);
-  }
-  // patrón ↓ para los pulsos registrados
-  const pat=document.getElementById('pattern');
-  pat.innerHTML='';
-  for(let k=0;k<REG_BEATS;k++){ const s=document.createElement('span'); s.textContent='↓'; pat.appendChild(s); }
-}
 function updateRScore(){
   document.getElementById('rPerfect').textContent=rScore.perfect;
   document.getElementById('rGood').textContent=rScore.good;

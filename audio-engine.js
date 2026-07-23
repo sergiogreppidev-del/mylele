@@ -7,17 +7,16 @@ let musicGain=null;
 let timeBuf, freqBuf;
 let running=false;
 
-// ---------- Arranque ----------
-document.getElementById('startBtn').addEventListener('click', start);
-
+// ---------- Arranque (lo dispara ui.js en el primer toque) ----------
 async function start(){
+  if(running) return true;
   try{
     stream = await navigator.mediaDevices.getUserMedia({
       audio:{ echoCancellation:false, noiseSuppression:false, autoGainControl:false }
     });
   }catch(e){
     alert('No pude acceder al micrófono. Revisá los permisos del navegador y volvé a intentar.\n\n('+e.name+')');
-    return;
+    return false;
   }
   audioCtx = new (window.AudioContext||window.webkitAudioContext)();
   if(audioCtx.state==='suspended') await audioCtx.resume();
@@ -38,11 +37,10 @@ async function start(){
   sourceNode.connect(analyserChroma);
 
   running=true;
-  document.getElementById('start').style.display='none';
-  document.getElementById('liveDot').classList.add('live');
   buildStringsUI();
   buildDebugUI();
   loop();
+  return true;
 }
 
 // ===================================================================

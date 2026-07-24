@@ -6,6 +6,16 @@ const SUPA_URL='https://duvflmqbagnlhznuqjhr.supabase.co';
 const SUPA_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImR1dmZsbXFiYWdubGh6bnVxamhyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQ3MzI0OTcsImV4cCI6MjEwMDMwODQ5N30.grvye06MRNefUiIDTf9VzgW6AnJBeh1lS3aqJP6eqJY';
 const DEFAULT_EVENTS=[{t:0,chord:'C',dur:4},{t:4,chord:'Am',dur:4},{t:8,chord:'F',dur:4},{t:12,chord:'G',dur:4},{t:16,chord:'C',dur:4},{t:20,chord:'Am',dur:4},{t:24,chord:'F',dur:4},{t:28,chord:'G',dur:4}];
 let songEvents=[], songMeta=null, songMode='chords', levelsList=[], curSlug=null;
+// Melodía de acompañamiento del nivel (la toca la app, el alumno no).
+// Formato: [{t, pitch:'G4', dur}] — tiempos en beats, igual que el resto.
+let backingNotes=[];
+
+// Una canción puede traer VARIAS partituras: la jugable y la de fondo.
+// Nunca agarrar charts[0] a ciegas: el orden que devuelve la base no está garantizado.
+const BACKING_MODE='backing';
+function playableChart(s){ return (s.charts||[]).find(c=>c && c.mode!==BACKING_MODE) || null; }
+function backingChartOf(s){ return (s.charts||[]).find(c=>c && c.mode===BACKING_MODE) || null; }
+function chartModeOf(s){ const c=playableChart(s); return (c&&c.mode)||'chords'; }
 
 async function supaGet(path){
   const r=await fetch(SUPA_URL+'/rest/v1/'+path, {headers:{apikey:SUPA_KEY, Authorization:'Bearer '+SUPA_KEY}});
@@ -28,13 +38,15 @@ async function loadContent(){
     // Solo el chart PUBLICADO de cada canción: el editor deja borradores en la misma tabla
     // (published=false) y con !inner una canción sin chart publicado no aparece en el mapa.
     const songs=await supaGet('songs?select=slug,title,level,bpm,charts!inner(events,mode)&charts.published=is.true&order=level.asc');
-    if(songs && songs.length){
-      levelsList=songs; buildLevelSelector();
-      loadSong(songs[0]);            // arranca en el nivel 1
+    // Una canción que solo tenga fondo publicado no es un nivel jugable: se descarta.
+    const jugables=(songs||[]).filter(playableChart);
+    if(jugables.length){
+      levelsList=jugables; buildLevelSelector();
+      loadSong(jugables[0]);         // arranca en el nivel 1
     }else{ throw new Error('sin niveles'); }
   }catch(e){
     console.warn('No se pudo cargar de Supabase, uso respaldo local.', e);
-    songEvents=DEFAULT_EVENTS.slice(); songMode='chords';
+    songEvents=DEFAULT_EVENTS.slice(); songMode='chords'; backingNotes=[];
     setContentStatus('⚠ Sin conexión con Supabase — usando progresión local (C·Am·F·G)','warn');
   }
 }
@@ -52,9 +64,11 @@ function buildLevelSelector(){
 function loadSong(s){
   curSlug=s.slug; songMeta=s;
   bpm=Number(s.bpm)||80; document.getElementById('bpmVal').textContent=bpm;
-  const chart=(s.charts||[])[0];
+  const chart=playableChart(s);
   songMode=(chart&&chart.mode)||'chords';
   songEvents=(chart&&Array.isArray(chart.events))?chart.events:[];
+  const bck=backingChartOf(s);
+  backingNotes=(bck&&Array.isArray(bck.events))?bck.events:[];
   document.querySelectorAll('#levels .lvbtn').forEach(b=>b.classList.toggle('active', b.dataset.slug===s.slug));
   const tipo = songMode==='melody'?'notas':'acordes';
   setContentStatus('🎵 <b>'+s.title+'</b> · '+songEvents.length+' '+tipo+' · desde Supabase ✓','ok');

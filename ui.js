@@ -27,10 +27,8 @@ function starsFor(acc){ return acc>=90?3 : acc>=70?2 : acc>=40?1 : 0; }
 
 /* ---------- Mapa de niveles (reemplaza al selector viejo) ---------- */
 function levelsForMode(){
-  return levelsList.filter(s=>{
-    const m=(s.charts&&s.charts[0]&&s.charts[0].mode)||'chords';
-    return m===selectedMode;
-  });
+  // chartModeOf ignora la capa de fondo: un nivel puede tener las dos.
+  return levelsList.filter(s=>chartModeOf(s)===selectedMode);
 }
 function buildLevelSelector(){
   const cont=document.getElementById('levels'); if(!cont) return;

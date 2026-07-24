@@ -218,6 +218,28 @@ function scheduleBacking(){
   }
 }
 
+// --- melodía de acompañamiento importada (opcional, por nivel) ---
+// Viene de un chart con mode='backing' y guarda la ALTURA ('G4'), no la digitación:
+// no la toca nadie, la sintetiza el navegador, así que puede ir en cualquier octava.
+const PITCH_RE=/^([A-Ga-g])([#b]?)(-?\d)$/;
+const LETTER_PC={C:0,D:2,E:4,F:5,G:7,A:9,B:11};
+function pitchToFreq(txt){
+  const m=PITCH_RE.exec(String(txt).trim()); if(!m) return null;
+  const pc=LETTER_PC[m[1].toUpperCase()]; if(pc===undefined) return null;
+  const alter = m[2]==='#'?1 : m[2]==='b'?-1 : 0;
+  const midi=(Number(m[3])+1)*12 + pc + alter;
+  return 440*Math.pow(2,(midi-69)/12);
+}
+function scheduleBackingMelody(){
+  if(clickMuted || !backingNotes || !backingNotes.length) return;
+  for(const n of backingNotes){
+    const f=pitchToFreq(n.pitch); if(f===null) continue;
+    const at = startTime + (COUNT_IN + (n.t||0))*beatDur;
+    const dur = Math.max(0.08, (n.dur||1)*beatDur*0.9);   // deja aire entre notas
+    playSynth(at, f, dur, 'sine', 0.2);
+  }
+}
+
 function startRhythm(calibrate){
   if(rhythmActive || !audioCtx) return;
   if(musicGain){ musicGain.gain.cancelScheduledValues(audioCtx.currentTime); musicGain.gain.setValueAtTime(1, audioCtx.currentTime); }
@@ -255,11 +277,16 @@ function startRhythm(calibrate){
       return {t, kind:'note', label:e.note, match:e.note, str:null,
               lane:(NOTE_LANE[e.note]!==undefined?NOTE_LANE[e.note]:1), state:'pending'};
     });
-    const lastBeat = evs.reduce((m,e)=>Math.max(m, e.t + (e.dur||1)), 0);
+    // El nivel dura lo que dure la capa más larga: el fondo puede pasarse de lo jugable.
+    const lastBeat = Math.max(
+      evs.reduce((m,e)=>Math.max(m, e.t + (e.dur||1)), 0),
+      (backingNotes||[]).reduce((m,e)=>Math.max(m, (e.t||0) + (e.dur||1)), 0)
+    );
     totalBeats = COUNT_IN + Math.ceil(lastBeat) + 1;
     expected=[];                        // en modo acordes no usamos onsets
     for(let i=0;i<totalBeats;i++){ scheduleClick(startTime+i*beatDur, (i%4)===0); }
     scheduleBacking();                  // 🎵 groove reggae sincronizado
+    scheduleBackingMelody();            // 🎶 melodía de fondo del nivel, si tiene
     combo=0; bestCombo=0; bursts=[];
     startTrackLoop();
     document.getElementById('playBtn').textContent='⏹ Detener';

@@ -25,7 +25,9 @@ async function loadContent(){
       if(built.length===4){ CHORDS.length=0; built.forEach(c=>{ buildChordTemplate(c); CHORDS.push(c); }); setTarget(0); }
     }
     // 2) lista de niveles (canciones ordenadas)
-    const songs=await supaGet('songs?select=slug,title,level,bpm,charts(events,mode)&order=level.asc');
+    // Solo el chart PUBLICADO de cada canción: el editor deja borradores en la misma tabla
+    // (published=false) y con !inner una canción sin chart publicado no aparece en el mapa.
+    const songs=await supaGet('songs?select=slug,title,level,bpm,charts!inner(events,mode)&charts.published=is.true&order=level.asc');
     if(songs && songs.length){
       levelsList=songs; buildLevelSelector();
       loadSong(songs[0]);            // arranca en el nivel 1

@@ -59,14 +59,22 @@ Proyecto `mylele` · id `duvflmqbagnlhznuqjhr` · región São Paulo · `https:/
 
 - **`chords`** — catálogo: `id` PK (`'C'`,`'Am'`,...), `name_es`, `frets[]` (por cuerda G,C,E,A), `fingers[]`, `pitch_classes[]`.
 - **`songs`** — niveles: `id`, `slug`, `title`, `artist`, `level`, `bpm`, `time_sig`, `tuning`, `audio_path`, `is_free`, `duration_s`.
-- **`charts`** — la partitura: `id`, `song_id`→`songs.id`, `mode` (`'chords'`|`'melody'`), `version`, `events` (jsonb), único por (`song_id`,`mode`,`version`).
+- **`charts`** — la partitura: `id`, `song_id`→`songs.id`, `mode` (`'chords'`|`'melody'`), `version`, `events` (jsonb), `published` (bool), único por (`song_id`,`mode`,`version`).
+- **`admins`** — quién puede editar contenido desde el editor. Se toca **solo desde el SQL editor** de Supabase.
+
+**Publicado vs. borrador:** un nivel puede tener varios charts, pero **solo uno publicado** por (`song_id`,`mode`) — lo garantiza el índice parcial `charts_one_published_per_mode`. La app de alumnos consulta con `charts!inner(...)&charts.published=is.true`, así que un chart en borrador no le llega nunca, y una canción sin chart publicado no aparece en el mapa de niveles. Para poner uno en vivo se usa la función `publish_chart(uuid)`, que baja el anterior y sube el nuevo en la misma transacción.
 
 **Formato de `events`** — tiempos siempre en **beats** (no segundos): `t` = beat de inicio, `dur` = duración en beats.
 
 - Modo **`melody`** (tablatura): `{"t":0,"string":"C","fret":0,"dur":1}`. `string` ∈ G/C/E/A, `fret` ≥ 0. El editor debe pedir cuerda+traste, nunca el nombre de la nota — la app calcula la nota sola.
 - Modo **`chords`**: `{"t":0,"chord":"C","dur":1,"dir":"d"}`. `dir`: `"d"` abajo (default) | `"u"` arriba. `chord` debe existir en `chords`. La dirección de rasgueo **no se detecta por audio**, es guía visual.
 
-**Seguridad actual:** RLS activo, **solo políticas de SELECT públicas**. No hay INSERT/UPDATE/DELETE — el contenido es de solo lectura desde el cliente. La `anon key` pública ya está en `content.js` (correcto, es solo-lectura); **nunca** poner la `service_role` key en código cliente.
+**Seguridad actual:** RLS activo en las 4 tablas.
+- **SELECT público** en `songs`, `charts` y `chords` — es lo que usa la app de alumnos, sin login.
+- **INSERT/UPDATE/DELETE solo para admins**: las políticas exigen `public.is_admin()`, que devuelve true únicamente si el usuario logueado está en la tabla `admins`. Sin login no se puede escribir nada.
+- `is_admin()` y `publish_chart()` son `security definer` con `search_path` fijo (necesario: una política sobre `admins` que consulta `admins` entraría en recursión infinita).
+
+La `anon key` pública ya está en `content.js` (correcto, sin login es solo-lectura); **nunca** poner la `service_role` key en código cliente.
 
 **Contenido cargado hoy:** 4 acordes (C, Am, F, G) y 5 niveles (`nivel-1-notas`, `nivel-2-arpegios`, `nivel-2-acordes`, `nivel-3-cambios`, `nivel-4-rasgueos`).
 
@@ -93,12 +101,12 @@ Mantener esta paleta y tipografía en cualquier pantalla o herramienta nueva (in
 | `MyLele_Estado_del_Proyecto.md` | Traspaso técnico completo: arquitectura, esquema de datos, decisiones validadas |
 | `MyLele_Blueprint_Producto.md` | Estrategia de producto, UX, currículo pedagógico, roadmap por fases |
 | `MyLele_Spec_Motor_Audio.md` | Plan del motor de audio nativo en C++ para Android (el salto post-web) |
-| `MyLele_Editor_de_Niveles.md` | Brief de la futura app de autoría de contenido (hoy los niveles se cargan a mano por SQL) |
+| `MyLele_Editor_de_Niveles.md` | Brief de la app de autoría de contenido — construida en el repo hermano `mylele-editor` |
 
 ## Qué falta (próximos pasos conocidos)
 
 - Pantalla de resultado al terminar un nivel (estrellas, celebración).
 - Más niveles y acordes (D, Em, G7, C7…).
 - Audio de acompañamiento grabado en Supabase Storage (hoy se sintetiza en el navegador).
-- Editor de niveles (app separada — ver `MyLele_Editor_de_Niveles.md`).
+- Editor de niveles: **fase 1 lista** (acordes) en el repo hermano `mylele-editor`. Falta el modo notas (tablatura) y el ABM de acordes.
 - A futuro: app nativa Android con el motor de audio reescrito en C++.

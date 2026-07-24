@@ -36,6 +36,10 @@ Si agregás un archivo nuevo, sumalo a esta lista y a `index.html` respetando la
 **Despliegue:** GitHub (`sergiogreppidev-del/mylele`) → Vercel, automático en cada push.
 **En vivo:** https://mylele-phi.vercel.app/ · Requiere HTTPS (el micrófono lo exige).
 
+**Editor de niveles** (repo hermano, proyecto de Vercel aparte, mismo Supabase):
+`sergiogreppidev-del/mylele-editor` (privado) · https://mylele-editor-git-main-punto-gesell.vercel.app/
+Carpeta local: `../mylele-editor`. Es donde se crean y publican los niveles.
+
 ## Flujo de trabajo
 
 - **Subir cambios:** doble clic en `subir-a-github.bat` (pull + push, dispara redeploy en Vercel).

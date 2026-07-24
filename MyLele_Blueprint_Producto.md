@@ -6,6 +6,36 @@
 
 ---
 
+## 📍 Estado a julio 2026 — qué de este plan ya se ejecutó
+
+Este documento se escribió **antes** de construir nada. Hoy ya existe un prototipo web
+funcionando, así que varias cosas que acá figuran como "a decidir" o "a futuro" ya pasaron.
+Leer el resto del blueprint con esto en mente:
+
+**Ya hecho:**
+- **Fase 0 completa** — el *spike* de audio (§11), que era el riesgo #1, **se validó**.
+  Detalle en `MyLele_Spec_Motor_Audio.md`.
+- **Backend decidido y en producción:** Supabase (§10 lo proponía como opción — ya es un hecho).
+  Esquema real documentado en `MyLele_Estado_del_Proyecto.md`.
+- **Contenido como dato** (§4.2): los niveles viven en la base, no en el código. Hay 5 cargados.
+- **Sistema de diseño definido y aplicado:** estética arcade/pop art, no el Material Design 3
+  que proponía §2.2. Paleta y tipografías reales en `MyLele_Estado_del_Proyecto.md` §5.
+
+**Decisiones de §12 que ya están resueltas:**
+- *Plataforma inicial* → **Android** (vía web hoy, nativa después).
+- *¿IA "profe" desde el MVP?* → **no**, queda para Fase 4 como se recomendaba.
+- *Stack de prototipado* → se hizo en **web estática pura**, sin framework.
+
+**Lo que sigue genuinamente abierto:**
+- **Flutter vs. React Native vs. nativo puro** para la app real (§10, §12).
+- Licenciamiento de canciones, monetización y tamaño de equipo.
+- Todo el currículo de §6 más allá del Nivel 1 — está diseñado pero no producido.
+
+> El **currículo (§6), la pedagogía, la gamificación (§7) y el motor adaptativo (§8)**
+> siguen vigentes tal cual están escritos. Esa es la parte más valiosa de este documento.
+
+---
+
 ## 0. Resumen ejecutivo
 
 MyLele es una app móvil que enseña ukelele desde cero usando **únicamente el micrófono del dispositivo**. El usuario toca, la app escucha, evalúa en tiempo real (nota, acorde, rasgueo, ritmo y precisión) y responde como lo haría un profesor particular: corrige, explica, motiva y adapta.

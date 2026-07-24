@@ -3,9 +3,10 @@
 
 "use strict";
 /* ===================================================================
-   NALU · SPIKE DE DETECCIÓN DE UKELELE (afinador + nota + acordes)
-   Un solo archivo, sin dependencias. Procesa TODO en el dispositivo.
-   El audio nunca sale del navegador.
+   MyLele · DETECCIÓN DE UKELELE (afinador + nota + acordes)
+   Sin dependencias ni build. Procesa TODO en el dispositivo:
+   el audio nunca sale del navegador.
+   Primer script del orden de carga — ver index.html.
    =================================================================== */
 
 const NOTE_NAMES = ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];

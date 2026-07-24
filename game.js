@@ -44,7 +44,7 @@ function renderLog(){
     const s=CHORDS.map(c=>c.name+':'+e.sims[c.name]).join(' ');
     return `#${e.n} obj=${e.target} -> ${e.best} (margen ${e.margin}, rms ${e.rms}) | ${s}`;
   });
-  const header='NALU chord log · '+new Date().toLocaleString();
+  const header='MyLele chord log · '+new Date().toLocaleString();
   document.getElementById('logText').value =
     header+'\n'+lines.join('\n')+'\n\n--- JSON (para analisis) ---\n'+JSON.stringify(diagLog);
 }
@@ -578,7 +578,7 @@ function renderRLog(){
   updateRCaptureBtn();
   const lines=rLog.map(e=>`pulso ${e.beat}: crudo ${e.ms>0?'+':''}${e.ms}ms (compensado ${e.comp_ms>0?'+':''}${e.comp_ms}ms)`);
   document.getElementById('rLogText').value =
-    'NALU rhythm log · BPM '+bpm+' · latencia '+(latencyMs===null?'sin calibrar':latencyMs+'ms')+'\n'
+    'MyLele rhythm log · BPM '+bpm+' · latencia '+(latencyMs===null?'sin calibrar':latencyMs+'ms')+'\n'
     +lines.join('\n')+'\n\n--- JSON ---\n'+JSON.stringify({bpm,latencyMs,offsets:rLog});
 }
 

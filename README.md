@@ -3,7 +3,7 @@
 App web para **aprender ukelele jugando**. Escucha por el micrófono y evalúa en tiempo real:
 afinación, notas, acordes y ritmo. Todo el audio se procesa **en el dispositivo** — nunca sale del navegador.
 
-**En vivo:** el proyecto se despliega solo en Vercel con cada push.
+**En vivo:** https://mylele-phi.vercel.app/ — se despliega solo en Vercel con cada push.
 
 ---
 
@@ -16,8 +16,8 @@ Doble clic en **`subir-a-github.bat`**, escribir un mensaje (o Enter) y listo.
 Trae los cambios del remoto, sube los tuyos y Vercel redeploya en segundos.
 
 ### Probar en el celular
-Abrir la URL de Vercel. **Siempre hacer refresh forzado** después de subir: el navegador
-cachea los `.js` y podés estar viendo la versión anterior sin darte cuenta.
+Abrir https://mylele-phi.vercel.app/ · **Siempre hacer refresh forzado** después de subir:
+el navegador cachea los `.js` y podés estar viendo la versión anterior sin darte cuenta.
 
 ### Probar en la compu
 El micrófono necesita un contexto seguro. Abrir el `index.html` con doble clic **no alcanza**.
@@ -77,6 +77,7 @@ Para agregar niveles hoy hay que escribir SQL. Está previsto un **editor visual
 | Documento | Para qué |
 |---|---|
 | `MyLele_Estado_del_Proyecto.md` | Traspaso técnico: arquitectura, esquema de datos, decisiones validadas |
-| `Blueprint_App_Ukelele.md` | Estrategia de producto, currículo de ukelele, roadmap |
-| `Spec_Motor_de_Audio_Android.md` | Plan del motor de audio nativo (el salto a C/Android) |
+| `MyLele_Blueprint_Producto.md` | Estrategia de producto, currículo de ukelele, roadmap |
+| `MyLele_Spec_Motor_Audio.md` | Plan del motor de audio nativo (el salto a C/Android) |
 | `MyLele_Editor_de_Niveles.md` | Brief del editor de niveles |
+| `CLAUDE.md` | Contexto del proyecto para trabajar con Claude Code |

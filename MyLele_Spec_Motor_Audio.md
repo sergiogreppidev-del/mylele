@@ -4,6 +4,36 @@
 
 ---
 
+## 📍 Estado a julio 2026 — leer antes que nada
+
+**El *spike* de validación de la Sección 11 ya se hizo.** No hizo falta contratar a nadie: se
+construyó como **prototipo web** (`audio-engine.js` en este mismo repo), y **funciona**.
+
+Qué quedó validado con datos reales:
+
+| Objetivo del spike | Resultado |
+|---|---|
+| Afinador | ✅ Funciona (por cuerda, no cromático) |
+| Detección de nota al aire | ✅ Funciona |
+| Detección de C · Am · F · G con detección restringida | ✅ 38/39 aciertos tras corregir la plantilla del G |
+| Latencia < 100 ms | ❌ **~300 ms en Android web** |
+
+**La conclusión que importa:** el *enfoque* está probado — la detección restringida funciona y
+la precisión llega. Lo único que la web no puede dar es la **latencia**, y eso es exactamente
+lo que resuelve el motor nativo que describe este documento (Oboe + C++ + hilo de audio dedicado).
+
+Por eso, de acá en adelante:
+
+- **Secciones 1–9 (la spec técnica): siguen 100% vigentes.** Son el plan del motor nativo.
+- **Sección 10 (banco de pruebas): vigente y pendiente.** Las grabaciones del prototipo web
+  son el punto de partida del dataset.
+- **Sección 11 (plan de de-risking): ya ejecutada por otra vía.** Leerla como historia, no
+  como tarea. La pregunta "¿se puede hacer esto?" ya tiene respuesta: **sí**.
+- **Sección 12 (a quién contratar): vigente**, pero ahora contratás desde una posición mucho
+  mejor — tenés un prototipo funcionando que sirve de especificación viva y de prueba de viabilidad.
+
+---
+
 ## ⚠️ Cómo usar este documento (leé esto primero)
 
 Sos **solo y no técnico**, así que este documento tiene **dos lectores**:

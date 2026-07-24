@@ -1,0 +1,7 @@
+# Ajustes locales de Claude Code (permisos de esta máquina, no del proyecto)
+.claude/settings.local.json
+
+# Sistema operativo
+Thumbs.db
+desktop.ini
+.DS_Store

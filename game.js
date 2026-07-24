@@ -238,13 +238,23 @@ function startRhythm(calibrate){
     const d=document.getElementById('calibDot'); d.classList.remove('count','beat','pulse');
   }else{
     // MODO CANCIÓN: notas de la pista tomadas del chart (Supabase)
+    // Nota  → {t, string:'C', fret:0}  se dibuja el TRASTE y se detecta la nota resultante
+    // Acorde→ {t, chord:'C', dir:'d'|'u'}  barra vertical con flecha de rasgueo
     const evs = songEvents.length ? songEvents : DEFAULT_EVENTS;
-    songNotes = evs.map(e=>({
-      t: startTime + (COUNT_IN + e.t)*beatDur,
-      kind: (e.note!==undefined ? 'note' : 'chord'),
-      label: (e.note!==undefined ? e.note : e.chord),
-      state:'pending'
-    }));
+    songNotes = evs.map(e=>{
+      const t = startTime + (COUNT_IN + e.t)*beatDur;
+      if(e.chord!==undefined){
+        return {t, kind:'chord', label:e.chord, match:e.chord, dir:(e.dir==='u'?'u':'d'), lane:null, state:'pending'};
+      }
+      if(e.string!==undefined){                       // tablatura: cuerda + traste
+        const fret=e.fret||0;
+        return {t, kind:'note', label:String(fret), match:fretToNoteName(e.string,fret),
+                str:e.string, lane:(STRING_LANE[e.string]||0), state:'pending'};
+      }
+      // compatibilidad con charts viejos que solo traían el nombre de la nota
+      return {t, kind:'note', label:e.note, match:e.note, str:null,
+              lane:(NOTE_LANE[e.note]!==undefined?NOTE_LANE[e.note]:1), state:'pending'};
+    });
     const lastBeat = evs.reduce((m,e)=>Math.max(m, e.t + (e.dur||1)), 0);
     totalBeats = COUNT_IN + Math.ceil(lastBeat) + 1;
     expected=[];                        // en modo acordes no usamos onsets
@@ -346,43 +356,52 @@ function darken(h,f){ f=f||0.35; return 'rgb('+hexRgb(h).map(v=>Math.round(v*(1-
 function rr(ctx,x,y,w,h,r){ ctx.beginPath(); ctx.moveTo(x+r,y); ctx.arcTo(x+w,y,x+w,y+h,r); ctx.arcTo(x+w,y+h,x,y+h,r); ctx.arcTo(x,y+h,x,y,r); ctx.arcTo(x,y,x+w,y,r); ctx.closePath(); }
 
 function drawElem(ctx, nt, p){
-  const col=elemColor(nt.label), st=nt.state;
+  const col = nt.kind==='note' ? (STRING_COLORS[nt.str]||elemColor(nt.label)) : elemColor(nt.label);
+  const st=nt.state;
   const alpha = st==='pending'?1 : (st==='good'?0.95:0.30);
   ctx.save(); ctx.globalAlpha=alpha;
   if(st==='pending'){ ctx.shadowColor=col; ctx.shadowBlur=12; }
   if(nt.kind==='chord'){
     // ACORDE: columna vertical que cubre las 4 cuerdas
     const w=p.w, x=p.x-w/2, y=p.top, h=p.bottom-p.top;
+    const up = nt.dir==='u';
     let f = st==='bad' ? '#4a4456' : null;
     if(!f){ const g=ctx.createLinearGradient(x,y,x+w,y); g.addColorStop(0,lighten(col,0.30)); g.addColorStop(0.5,col); g.addColorStop(1,darken(col,0.18)); f=g; }
     ctx.fillStyle=f; rr(ctx,x,y,w,h,8); ctx.fill();
     ctx.restore();
-    // galones (chevrons) como en la referencia
+    // galones orientados según la dirección del rasgueo
     if(st!=='bad'){
-      ctx.save(); ctx.globalAlpha=alpha*0.5; ctx.strokeStyle=lighten(col,0.55); ctx.lineWidth=Math.max(2,w*0.10); ctx.lineCap='round';
+      ctx.save(); ctx.globalAlpha=alpha*0.5; ctx.strokeStyle=lighten(col,0.55);
+      ctx.lineWidth=Math.max(2,w*0.10); ctx.lineCap='round';
       const step=Math.max(16,h/6);
       for(let yy=y+step*0.7; yy<y+h-4; yy+=step){
-        ctx.beginPath(); ctx.moveTo(x+w*0.18, yy-step*0.22); ctx.lineTo(x+w*0.5, yy+step*0.16); ctx.lineTo(x+w*0.82, yy-step*0.22); ctx.stroke();
+        ctx.beginPath();
+        if(up){ ctx.moveTo(x+w*0.18, yy+step*0.16); ctx.lineTo(x+w*0.5, yy-step*0.22); ctx.lineTo(x+w*0.82, yy+step*0.16); }
+        else  { ctx.moveTo(x+w*0.18, yy-step*0.22); ctx.lineTo(x+w*0.5, yy+step*0.16); ctx.lineTo(x+w*0.82, yy-step*0.22); }
+        ctx.stroke();
       }
       ctx.restore();
     }
-    // nombre del acorde, grande y centrado
+    // nombre del acorde + flecha de rasgueo
     ctx.save(); ctx.globalAlpha=alpha;
     ctx.fillStyle= st==='bad'?'#9A93A6':'#ffffff';
     ctx.shadowColor='rgba(0,0,0,0.55)'; ctx.shadowBlur=6;
-    ctx.font='bold '+Math.round(Math.min(34, Math.max(18, w*0.62)))+'px "Titan One",system-ui';
     ctx.textAlign='center'; ctx.textBaseline='middle';
-    ctx.fillText(nt.label, p.x, (p.top+p.bottom)/2);
+    ctx.font='400 '+Math.round(Math.min(34, Math.max(18, w*0.62)))+'px "Titan One",system-ui';
+    ctx.fillText(nt.label, p.x, (p.top+p.bottom)/2 - 4);
+    ctx.font='800 '+Math.round(Math.min(26, Math.max(15, w*0.5)))+'px "Baloo 2",system-ui';
+    ctx.fillText(up?'↑':'↓', p.x, p.bottom - 20);
     ctx.restore();
   }else{
-    // NOTA: círculo en la cuerda que corresponde
-    const R=17;
+    // NOTA: círculo en su cuerda, con el NÚMERO DE TRASTE adentro (0 = al aire)
+    const R=18;
     let f = st==='bad' ? '#5b5468' : null;
     if(!f){ const g=ctx.createRadialGradient(p.x-R*0.3,p.y-R*0.3,1,p.x,p.y,R); g.addColorStop(0,lighten(col,0.6)); g.addColorStop(0.6,col); g.addColorStop(1,darken(col,0.3)); f=g; }
     ctx.fillStyle=f; ctx.beginPath(); ctx.arc(p.x,p.y,R,0,Math.PI*2); ctx.fill();
+    ctx.lineWidth=2.5; ctx.strokeStyle='rgba(58,42,99,.85)'; ctx.stroke();
     ctx.restore();
-    ctx.globalAlpha=alpha; ctx.fillStyle= st==='bad'?'#9A93A6':'#0b1a17';
-    ctx.font='800 16px "Baloo 2",system-ui'; ctx.textAlign='center'; ctx.textBaseline='middle';
+    ctx.globalAlpha=alpha; ctx.fillStyle= st==='bad'?'#9A93A6':'#3A2A63';
+    ctx.font='400 19px "Titan One",system-ui'; ctx.textAlign='center'; ctx.textBaseline='middle';
     ctx.fillText(nt.label,p.x,p.y+1); ctx.globalAlpha=1;
   }
 }
@@ -454,7 +473,7 @@ function renderTrack(){
       const nt=songNotes[i], tr=nt.t-now;
       if(tr>travel+0.4 || tr<-0.6){ pos.push(null); continue; }
       const x=hitX+tr*pxPerSec;
-      pos.push({x, y:laneY(elemLane(nt.kind,nt.label)), w:Math.max(30,Math.min(64,beatDur*pxPerSec*0.5)), top:topY-6, bottom:botY+6});
+      pos.push({x, y:laneY(nt.lane||0), w:Math.max(30,Math.min(64,beatDur*pxPerSec*0.5)), top:topY-6, bottom:botY+6});
     }
     // estela punteada (solo para notas sueltas)
     if(songNotes.length && songNotes[0].kind==='note'){
@@ -469,12 +488,12 @@ function renderTrack(){
       const nt=songNotes[i];
       if(nt.state==='pending'){
         const comp=(latencyMs||0)/1000, dtc=(now-comp)-nt.t;
-        const acierta = nt.kind==='note' ? (detectedNoteName===nt.label) : (detectedChord && detectedChord.name===nt.label);
+        const acierta = nt.kind==='note' ? (detectedNoteName===nt.match) : (detectedChord && detectedChord.name===nt.match);
         if(Math.abs(dtc)<=GOOD_S && acierta){
           nt.state='good'; const perfect=Math.abs(dtc)<=PERFECT_S;
           if(perfect) rScore.perfect++; else rScore.good++;
           combo++; bestCombo=Math.max(bestCombo,combo);
-          spawnBurst(true, nt.kind==='chord'?midY:laneY(elemLane(nt.kind,nt.label))); feedbackBlip(true); updateRScore();
+          spawnBurst(true, nt.kind==='chord'?midY:laneY(nt.lane||0)); feedbackBlip(true); updateRScore();
           popup={t0:now, text:perfect?'¡Perfecto!':'¡Bien!', color:perfect?'#7FD94C':'#FFC42E'};
         }else if(dtc>GOOD_S){ nt.state='bad'; rScore.miss++; combo=0; updateRScore(); }
       }

@@ -81,11 +81,41 @@ Se cargan como scripts clásicos **en ese orden** (comparten alcance global; no 
 `id` uuid · `song_id` → `songs.id` (on delete cascade) · `mode` (`'chords'` | `'melody'`) ·
 `version` int · `events` **jsonb** · único por (`song_id`,`mode`,`version`)
 
-**Formato de `events`** — tiempos en **beats**, no en segundos (independiente del BPM):
+**Formato de `events`** — tiempos en **beats**, no en segundos (independiente del BPM).
+`t` = beat de inicio (0 = primer tiempo) · `dur` = duración en beats.
+
+**Modo `melody` — notas y arpegios (TABLATURA).**
+El evento indica **cuerda y traste**, no el nombre de la nota. En la pista se dibuja un
+círculo en el carril de esa cuerda con el **número de traste adentro** (0 = al aire), que es
+lo que el alumno necesita para saber dónde poner el dedo. La app calcula sola qué nota
+debe sonar (`cuerda al aire + traste`) y eso es lo que compara con el micrófono.
+
 ```json
-[{"t":0,"chord":"C","dur":4},{"t":4,"chord":"Am","dur":4}]        // mode: chords
-[{"t":0,"note":"C","dur":2},{"t":2,"note":"E","dur":2}]           // mode: melody
+[{"t":0,"string":"C","fret":0,"dur":1},
+ {"t":1,"string":"E","fret":0,"dur":1},
+ {"t":2,"string":"A","fret":3,"dur":1}]
 ```
+- `string`: `"G"` | `"C"` | `"E"` | `"A"`
+- `fret`: entero ≥ 0 (0 = cuerda al aire)
+- Cuerdas al aire: G=Sol(67) · C=Do(60) · E=Mi(64) · A=La(69) en MIDI.
+- **Orden visual de carriles (de arriba hacia abajo): G · C · E · A.**
+- Color por cuerda: G sol · C lima · E sandía · A cielo.
+- *Compatibilidad:* si un evento trae `{"note":"C"}` en vez de `string`/`fret`, sigue
+  funcionando (formato viejo), pero **no muestra traste**. Usar siempre `string`+`fret`.
+
+**Modo `chords` — acordes con dirección de rasgueo.**
+Se dibuja una barra vertical que cubre las 4 cuerdas, con el nombre del acorde y una
+flecha de rasgueo. Los galones de la barra se orientan según la dirección.
+
+```json
+[{"t":0,"chord":"C","dur":1,"dir":"d"},
+ {"t":1,"chord":"C","dur":1,"dir":"u"}]
+```
+- `dir`: `"d"` = rasgueo hacia **abajo** ↓ (valor por defecto si se omite) · `"u"` = hacia **arriba** ↑
+- `chord` debe existir en la tabla `chords`.
+
+> Nota: la dirección del rasgueo **no se detecta por audio** (un ↓ y un ↑ suenan casi
+> igual). Se muestra como guía para el alumno y se asume a partir del patrón esperado.
 
 ### Seguridad actual
 RLS activo en las tres tablas. **Solo hay políticas de SELECT públicas.**
@@ -93,8 +123,15 @@ No existen políticas de INSERT/UPDATE/DELETE → hoy el contenido es de solo le
 desde el cliente. Escribir requiere agregar autenticación y políticas de administrador.
 
 ### Contenido cargado
-4 acordes (C, Am, F, G) y 4 niveles: `nivel-1-notas` (melody, 70 BPM),
-`nivel-2-acordes` (80), `nivel-3-cambios` (80), `nivel-4-rasgueos` (84).
+4 acordes (C, Am, F, G) y 5 niveles:
+
+| slug | modo | qué entrena |
+|---|---|---|
+| `nivel-1-notas` | melody | Notas al aire (traste 0 en las 4 cuerdas) |
+| `nivel-2-arpegios` | melody | Arpegios con trastes reales (0–3) |
+| `nivel-2-acordes` | chords | C·Am·F·G, uno por compás |
+| `nivel-3-cambios` | chords | Cambios rápidos (cada 2 tiempos) |
+| `nivel-4-rasgueos` | chords | Rasgueo alternado ↓↑ |
 
 ---
 

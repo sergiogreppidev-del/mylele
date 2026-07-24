@@ -78,11 +78,27 @@ acordes nuevos (D, Em, G7, C7…) sin SQL.
 
 - Los tiempos van en **beats**, nunca en segundos.
 - `t` = beat de inicio (0 = primer tiempo), `dur` = duración en beats.
-- Modo `chords` usa la clave `chord`; modo `melody` usa `note`.
-- Todo acorde referenciado **debe existir** en la tabla `chords`, o la app no lo dibuja
-  ni lo detecta.
-- Validar antes de publicar: sin solapamientos, sin `t` negativos, sin acordes inexistentes,
-  BPM entre 40 y 200.
+
+**Modo `melody` (notas y arpegios) — se escribe como TABLATURA:**
+```json
+{"t":0,"string":"C","fret":0,"dur":1}
+```
+- `string` ∈ `G` `C` `E` `A` · `fret` entero ≥ 0 (0 = al aire).
+- El editor debe pedir **cuerda + traste**, nunca el nombre de la nota: la app calcula
+  sola la nota resultante y dibuja el **número de traste** dentro del círculo.
+- Carriles de arriba hacia abajo: **G · C · E · A**.
+
+**Modo `chords` (acordes) — con dirección de rasgueo:**
+```json
+{"t":0,"chord":"C","dur":1,"dir":"d"}
+```
+- `dir` ∈ `"d"` (abajo ↓, por defecto) | `"u"` (arriba ↑).
+- El editor debe permitir elegir la dirección por evento, y ofrecer atajos para
+  patrones frecuentes (todo ↓, alternado ↓↑, island strum D–DU–UDU).
+- `chord` **debe existir** en la tabla `chords`, o la app no lo dibuja ni lo detecta.
+
+**Validar antes de publicar:** sin solapamientos, sin `t` negativos, acordes existentes,
+`string` válida, `fret` entre 0 y 12, BPM entre 40 y 200.
 
 ---
 

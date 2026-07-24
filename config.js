@@ -18,7 +18,15 @@ const UKE_STRINGS = [
   {name:'A', freq:440.00},
 ];
 
-// Detección RESTRINGIDA: solo estos 4 acordes (el set de principiante).
+// Nota que produce cada cuerda al aire (MIDI) — para traducir traste → nota
+const STRING_MIDI={G:67,C:60,E:64,A:69};
+// Orden visual de las cuerdas en la pista (de arriba hacia abajo)
+const STRING_LANE={G:0,C:1,E:2,A:3};
+const STRING_COLORS={G:'#FFC42E',C:'#7FD94C',E:'#FF5F7E',A:'#4FC9F5'};
+function fretToNoteName(str,fret){
+  const m=(STRING_MIDI[str]!==undefined?STRING_MIDI[str]:60)+(fret||0);
+  return NOTE_NAMES[((m%12)+12)%12];
+}
 // pcs = [raíz, tercera, quinta].  w = peso de cada una en la plantilla.
 // Clave (validada con datos reales): el G exige su tercera (B/Si) y baja el peso
 // del D, porque el ukelele reentrante mete mucho "D fantasma" en la C y el G se la robaba.

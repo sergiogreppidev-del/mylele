@@ -89,7 +89,7 @@ document.getElementById('startBtn').addEventListener('click', async()=>{
 document.querySelectorAll('.mode[data-mode]').forEach(b=>{
   b.addEventListener('click',()=>{
     selectedMode=b.dataset.mode;
-    document.getElementById('levelsTitle').textContent = selectedMode==='melody'?'Notas':'Acordes';
+    document.getElementById('levelsTitle').textContent = selectedMode==='melody'?'Notas y arpegios':'Acordes';
     buildLevelSelector(); go('levels');
   });
 });

@@ -75,6 +75,13 @@ Proyecto `mylele` · id `duvflmqbagnlhznuqjhr` · región São Paulo · `https:/
 - **`charts`** — la partitura: `id`, `song_id`→`songs.id`, `mode` (`'chords'`|`'melody'`|`'backing'`), `difficulty` (`'facil'`|`'dificil'`), `version`, `events` (jsonb), `published` (bool), único por (`song_id`,`mode`,`difficulty`,`version`).
 
 > **La dificultad no la elige el alumno**: se la impone el juego según cómo progresa. Por eso vive en el chart y no en la canción — la música de fondo es la misma para las dos, y su chart va siempre en `'facil'`. La regla de qué versión servir está en **`dificultadPara()`** (`content.js`), hoy fija en `'facil'`: ese es el único lugar a tocar cuando se defina la progresión. Si la dificultad pedida no está cargada, cae a la que exista.
+>
+> ⚠️ **`difficulty` NO son las tres grandes dificultades del juego.** Hay dos ejes distintos:
+>
+> - **Etapa** (Fácil · Intermedia · Difícil) — se distinguen por **cuánto vocabulario** se usa: cuántos acordes y cuántas notas entran en juego. Hoy **todo** el contenido está en la etapa Fácil, con los 4 acordes principales. Qué usan las otras dos todavía no está definido, así que **no existe en el código ni en la base**: cuando se defina, va a necesitar su propia columna.
+> - **Sub-nivel** (`difficulty`) — dentro de una etapa, con el **mismo** vocabulario, cambia **cuántos acordes por compás** toca el alumno: `'facil'` = uno por compás · `'dificil'` = hasta dos. En el editor se muestran como **"Fácil 1"** y **"Fácil 2"** justamente para no confundirlos con las etapas.
+>
+> Esa densidad es lo único que el editor le cambia a la IA al pedirle una canción (`reglasDensidad()` en `aiPrompt.ts` del repo del editor), y aplica **solo a la capa `chords`**: la música de fondo se genera igual en los dos.
 - **`admins`** — quién puede editar contenido desde el editor. Se toca **solo desde el SQL editor** de Supabase.
 
 **Publicado vs. borrador:** un nivel puede tener varios charts, pero **solo uno publicado** por (`song_id`,`mode`) — lo garantiza el índice parcial `charts_one_published_per_mode`. La app de alumnos consulta con `charts!inner(...)&charts.published=is.true`, así que un chart en borrador no le llega nunca, y una canción sin chart publicado no aparece en el mapa de niveles. Para poner uno en vivo se usa la función `publish_chart(uuid)`, que baja el anterior y sube el nuevo en la misma transacción.

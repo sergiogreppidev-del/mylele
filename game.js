@@ -252,18 +252,43 @@ function stopRecordedBacking(){
   if(audioSource){ try{ audioSource.stop(); }catch(e){} audioSource=null; }
 }
 
+// Cada nota del fondo tiene un rol (`v`): melodía, bajo o acompañamiento. Sin eso
+// todas sonaban igual de fuerte y con la misma onda, y la melodía quedaba enterrada
+// entre los acordes: la canción no se reconocía aunque las notas fueran correctas.
+function playVoice(time, freq, dur, type, peak, attack){
+  if(!audioCtx) return;
+  const osc=audioCtx.createOscillator(), g=audioCtx.createGain();
+  osc.type=type; osc.frequency.value=freq;
+  g.gain.setValueAtTime(0.0001, time);
+  g.gain.exponentialRampToValueAtTime(peak, time+attack);
+  // Cae al 60% y recién ahí se apaga: da cuerpo en vez de un "pip" que se muere.
+  g.gain.exponentialRampToValueAtTime(peak*0.6, time+Math.min(dur*0.4, 0.25));
+  g.gain.exponentialRampToValueAtTime(0.0001, time+dur);
+  osc.connect(g); g.connect(musicGain||audioCtx.destination);
+  osc.start(time); osc.stop(time+dur+0.03);
+}
 function scheduleBackingMelody(){
   if(clickMuted || !backingNotes || !backingNotes.length) return;
-  // El fondo es polifónico (puede traer acordes): si varias notas arrancan juntas
-  // sus amplitudes se suman y satura, así que se reparte el volumen entre las voces.
+  // Solo el relleno se reparte el volumen entre las notas que arrancan juntas;
+  // la melodía y el bajo mantienen el suyo.
   const juntas={};
-  for(const n of backingNotes){ const k=Math.round((n.t||0)*1000); juntas[k]=(juntas[k]||0)+1; }
+  for(const n of backingNotes){
+    if((n.v||'acomp')!=='acomp') continue;
+    const k=Math.round((n.t||0)*1000); juntas[k]=(juntas[k]||0)+1;
+  }
   for(const n of backingNotes){
     const f=pitchToFreq(n.pitch); if(f===null) continue;
-    const voces=juntas[Math.round((n.t||0)*1000)]||1;
     const at = startTime + (COUNT_IN + (n.t||0))*beatDur;
-    const dur = Math.max(0.08, (n.dur||1)*beatDur*0.9);   // deja aire entre notas
-    playSynth(at, f, dur, 'sine', 0.2/Math.sqrt(voces));
+    const largo = (n.dur||1)*beatDur;
+    const voz = n.v||'acomp';
+    if(voz==='lead'){
+      playVoice(at, f, Math.max(0.12, largo*0.92), 'triangle', 0.34, 0.012);
+    }else if(voz==='bass'){
+      playVoice(at, f, Math.max(0.10, largo*0.80), 'sine', 0.30, 0.008);
+    }else{
+      const k=juntas[Math.round((n.t||0)*1000)]||1;
+      playVoice(at, f, Math.max(0.08, largo*0.70), 'triangle', 0.11/Math.sqrt(k), 0.006);
+    }
   }
 }
 

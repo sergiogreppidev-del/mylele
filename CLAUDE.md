@@ -85,7 +85,9 @@ Proyecto `mylele` · id `duvflmqbagnlhznuqjhr` · región São Paulo · `https:/
 - Modo **`chords`**: `{"t":0,"chord":"C","dur":1,"dir":"d"}`. `dir`: `"d"` abajo (default) | `"u"` arriba. `chord` debe existir en `chords`. La dirección de rasgueo **no se detecta por audio**, es guía visual.
 - Modo **`backing`** (acompañamiento): `{"t":0,"pitch":"G4","dur":0.5}`. Es la música que **reproduce la app**, no la toca el alumno — por eso guarda la **altura** (`pitch`, notación científica) y no la digitación, y puede ir en cualquier octava. La sintetiza `scheduleBackingMelody()` en `game.js`. Se importa desde el editor con ayuda de una IA; no se escribe a mano.
 
-> El fondo es **polifónico**: varias notas con el mismo `t` suenan juntas (un acorde). No hace falta nada especial para reproducirlo —cada nota se programa por separado— pero sí se reparte el volumen entre las voces simultáneas, porque si no las amplitudes se suman y satura.
+> El fondo es **polifónico** y tiene **voces**: cada nota lleva `v` con su rol — `'lead'` (la melodía), `'bass'` (el bajo) o `'acomp'` (el relleno). Sin esto todas sonaban con la misma onda y el mismo volumen, y la melodía quedaba enterrada entre los acordes: la canción no se reconocía aunque las notas fueran correctas. `playVoice()` en `game.js` le da a cada rol su timbre y su lugar en la mezcla, y solo el relleno reparte volumen entre notas simultáneas.
+>
+> La separación importante: **la música (melodía + bajo + acompañamiento) no tiene límite de dificultad**; el que tiene que ser simple es el chart que toca el alumno. Son cosas distintas y no hay que simplificar una por la otra.
 
 **Seguridad actual:** RLS activo en las 4 tablas.
 - **SELECT público** en `songs`, `charts` y `chords` — es lo que usa la app de alumnos, sin login.

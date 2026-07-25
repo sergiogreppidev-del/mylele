@@ -17,6 +17,9 @@ let songAudioUrl=null, songAudioOffset=0, songAudioBuffer=null;
 // Tiempos por compás del nivel. Sin esto el acento del metrónomo cae cada 4 aunque
 // la canción esté en 3/4, y un vals suena como si estuviera mal tocado.
 let songBeatsPerBar=4;
+// Anacrusa: tiempos antes del primer compas completo. Sin esto el acento cae cada N
+// desde cero y una cancion con arranque en alzada se escucha corrida.
+let songPickup=0;
 function beatsPerBarOf(timeSig){
   const n=Number(String(timeSig||'4/4').split('/')[0]);
   return (Number.isFinite(n) && n>=1 && n<=16) ? n : 4;
@@ -62,7 +65,7 @@ async function loadContent(){
     // 2) lista de niveles (canciones ordenadas)
     // Solo el chart PUBLICADO de cada canción: el editor deja borradores en la misma tabla
     // (published=false) y con !inner una canción sin chart publicado no aparece en el mapa.
-    const songs=await supaGet('songs?select=slug,title,level,bpm,time_sig,audio_path,audio_offset_s,charts!inner(events,mode)&charts.published=is.true&order=level.asc');
+    const songs=await supaGet('songs?select=slug,title,level,bpm,time_sig,pickup_beats,audio_path,audio_offset_s,charts!inner(events,mode)&charts.published=is.true&order=level.asc');
     // Una canción que solo tenga fondo publicado no es un nivel jugable: se descarta.
     const jugables=(songs||[]).filter(playableChart);
     if(jugables.length){
@@ -72,7 +75,7 @@ async function loadContent(){
   }catch(e){
     console.warn('No se pudo cargar de Supabase, uso respaldo local.', e);
     songEvents=DEFAULT_EVENTS.slice(); songMode='chords'; backingNotes=[];
-    songAudioUrl=null; songAudioBuffer=null; songAudioOffset=0; songBeatsPerBar=4;
+    songAudioUrl=null; songAudioBuffer=null; songAudioOffset=0; songBeatsPerBar=4; songPickup=0;
     setContentStatus('⚠ Sin conexión con Supabase — usando progresión local (C·Am·F·G)','warn');
   }
 }
@@ -110,6 +113,7 @@ function loadSong(s){
   curSlug=s.slug; songMeta=s;
   bpm=Number(s.bpm)||80; document.getElementById('bpmVal').textContent=bpm;
   songBeatsPerBar=beatsPerBarOf(s.time_sig);
+  songPickup=Number(s.pickup_beats)||0;
   const chart=playableChart(s);
   songMode=(chart&&chart.mode)||'chords';
   songEvents=(chart&&Array.isArray(chart.events))?chart.events:[];

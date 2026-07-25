@@ -343,7 +343,11 @@ function startRhythm(calibrate){
     // El acento marca el inicio de cada compás DEL NIVEL, no cada 4 tiempos: en 3/4
     // caía en cualquier lado y la canción se escuchaba como si estuviera corrida.
     for(let i=0;i<clickHasta;i++){
-      const enCompas = ((i - COUNT_IN) % songBeatsPerBar + songBeatsPerBar) % songBeatsPerBar === 0;
+      // El acento marca el tiempo fuerte REAL. Con anacrusa el primer compas completo
+      // no empieza en el beat 0 sino despues, y acentuar cada N desde cero pone el
+      // golpe en la silaba equivocada: la cancion deja de reconocerse.
+      const desdeElUno = i - COUNT_IN - songPickup;
+      const enCompas = ((desdeElUno % songBeatsPerBar) + songBeatsPerBar) % songBeatsPerBar === 0;
       scheduleClick(startTime+i*beatDur, enCompas);
     }
     // Solo UNA fuente de acompañamiento. Antes, un nivel con fondo escrito sonaba con

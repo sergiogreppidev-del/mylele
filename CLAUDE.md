@@ -67,7 +67,9 @@ Proyecto `mylele` · id `duvflmqbagnlhznuqjhr` · región São Paulo · `https:/
 > ⚠️ `content.js` carga **todos** los acordes de la tabla, no una lista fija. Si se vuelve a cablear (`['C','Am','F','G']`), los acordes nuevos que se carguen desde el editor se ignoran y los niveles que los usen no se dibujan ni se detectan.
 >
 > `weights[]` lleva un peso por cada `pitch_classes[]`, en la misma posición — por eso un acorde puede ser tríada (3 notas) o séptima (4). Los pesos del **G** (`{1.0,1.6,0.5}`) son la calibración validada con grabaciones reales: no tocarlos sin volver a medir.
-- **`songs`** — niveles: `id`, `slug`, `title`, `artist`, `level`, `bpm`, `time_sig`, `tuning`, `audio_path`, `audio_offset_s`, `is_free`, `duration_s`.
+- **`songs`** — niveles: `id`, `slug`, `title`, `artist`, `level`, `bpm`, `time_sig`, `tuning`, `audio_path`, `audio_offset_s`, `is_free`, `duration_s`, `draft` (jsonb).
+
+> Las **columnas de `songs` son lo que está en vivo**: la app de alumnos las lee tal cual, sin filtrar nada. Los cambios sin publicar de la ficha viven en `draft` y se vuelcan a las columnas recién al llamar a `publish_song_meta(uuid)`. Por eso **la app de alumnos no necesita saber que existe el borrador** — nunca selecciona esa columna.
 
 **Acompañamiento grabado:** si el nivel tiene `audio_path`, el archivo se busca en el bucket **`backing`** de Storage (lectura pública, escritura solo para admins) y **reemplaza a todo lo sintetizado**; si no, se sintetiza como siempre. El contrato es que la grabación arranca en el **tiempo 1** (sin cuenta de entrada grabada) y está al BPM del nivel; `audio_offset_s` corrige el desfase sin volver a editar el archivo. Se decodifica a un `AudioBuffer` y se arranca con `start()` sobre el **mismo reloj** que el metrónomo: una etiqueta `<audio>` llega con decenas de ms de error y se escucha corrida. Con grabación, el metrónomo suena solo en la cuenta de entrada.
 - **`charts`** — la partitura: `id`, `song_id`→`songs.id`, `mode` (`'chords'`|`'melody'`), `version`, `events` (jsonb), `published` (bool), único por (`song_id`,`mode`,`version`).

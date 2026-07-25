@@ -5,9 +5,14 @@ let currentScreen='home', selectedMode='chords', micReady=false;
 
 /* ---------- Música del inicio ----------
    El navegador no deja que un audio arranque sin que el usuario toque algo, así que
-   empieza en el primer toque. Y se corta en cualquier pantalla que use el micrófono:
-   si suena música por el parlante, el micrófono la escucha y arruina la detección. */
-const SILENT_SCREENS = ['game','tuner','calib','practice'];
+   empieza en el primer toque. Suena SOLO en la pantalla de presentación: apenas se
+   entra a jugar, afinar o calibrar se corta.
+
+   Es la lista de las pantallas que la DEJAN sonar, no de las que la cortan. Antes era
+   al revés y por eso la música seguía en «¿Qué practicamos?», en el mapa de niveles y
+   en el resultado: nadie se acordó de sumarlas. Así una pantalla nueva nace en
+   silencio en vez de heredar la música por olvido. */
+const MUSIC_SCREENS = ['home'];
 const introAudio = document.getElementById('introAudio');
 let introMuted = false;
 try{ introMuted = localStorage.getItem('mylele_music')==='off'; }catch(e){}
@@ -19,7 +24,7 @@ function updateSoundBtn(){
   b.setAttribute('aria-label', introMuted ? 'Activar la música' : 'Silenciar la música');
 }
 function playIntro(){
-  if(!introAudio || introMuted || SILENT_SCREENS.includes(currentScreen)) return;
+  if(!introAudio || introMuted || !MUSIC_SCREENS.includes(currentScreen)) return;
   introAudio.play().catch(()=>{});   // si el navegador todavía no deja, se reintenta al próximo toque
 }
 function stopIntro(){ if(introAudio){ introAudio.pause(); introAudio.currentTime=0; } }
@@ -29,7 +34,7 @@ document.getElementById('soundBtn')?.addEventListener('click', e=>{
   introMuted=!introMuted;
   try{ localStorage.setItem('mylele_music', introMuted?'off':'on'); }catch(err){}
   updateSoundBtn();
-  if(introMuted) stopIntro(); else playIntro();
+  if(introMuted) stopIntro(); else { sfx('tap'); playIntro(); }   // el efecto confirma que volvió el sonido
 });
 document.addEventListener('pointerdown', playIntro, {once:false});
 updateSoundBtn();
@@ -40,12 +45,15 @@ function go(name){
   document.querySelectorAll('.screen').forEach(s=>s.classList.remove('on'));
   el.classList.add('on'); currentScreen=name; el.scrollTop=0;
   if(rhythmActive) stopRhythm();          // salir de una pantalla corta el juego
-  if(SILENT_SCREENS.includes(name)) stopIntro(); else playIntro();
+  if(MUSIC_SCREENS.includes(name)) playIntro(); else stopIntro();
   if(name==='game') renderTrack();
 }
 
 /* ---------- Micrófono (se pide en el primer toque) ---------- */
 async function ensureMic(){
+  // Se corta acá y no en go(): pedir el permiso puede tardar (el cartel del navegador),
+  // y mientras tanto el micrófono ya está abierto escuchando la música por el parlante.
+  stopIntro();
   if(micReady) return true;
   const ok=await start();
   if(ok){ micReady=true; document.getElementById('liveDot')?.classList.add('live'); }

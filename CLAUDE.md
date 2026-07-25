@@ -13,7 +13,7 @@ App web (futuro: app nativa Android) para **aprender ukelele jugando**. Escucha 
 Sitio estático puro: **sin build, sin dependencias, sin `npm install`**. Los `.js` son scripts clásicos (no `import`/`export`) que comparten alcance global y se cargan en un **orden fijo** en `index.html`:
 
 ```
-config.js → content.js → audio-engine.js → core.js → tuner.js → chords.js → game.js → ui.js
+config.js → content.js → audio-engine.js → core.js → tuner.js → chords.js → game.js → ui.js → sfx.js
 ```
 
 | Archivo | Responsabilidad |
@@ -29,6 +29,7 @@ config.js → content.js → audio-engine.js → core.js → tuner.js → chords
 | `chords.js` | Ejercicio de acordes + diagrama de digitación |
 | `game.js` | Pista del juego, ritmo, metrónomo, calibración, acompañamiento |
 | `ui.js` | Router de pantallas, permiso de micrófono, mapa de niveles |
+| `sfx.js` | Efectos de sonido de los botones (sintetizados, contexto de audio propio) |
 
 Si agregás un archivo nuevo, sumalo a esta lista y a `index.html` respetando las dependencias de scope global.
 
@@ -61,6 +62,7 @@ Carpeta local: `../mylele-editor`. Es donde se crean y publican los niveles.
 - **Ventanas de acierto anchas** (±130 ms justo / ±240 ms cerca): sensación arcade, no exigencia de músico profesional.
 - **Afinar antes de practicar acordes** — con una cuerda desafinada, la detección de acordes falla y parece un bug del algoritmo.
 - El progreso se guarda en `localStorage` (`mylele_progress`), así que en ventana privada arranca de cero.
+- **La música de inicio suena solo en la pantalla de presentación.** `MUSIC_SCREENS` (`ui.js`) lista las pantallas que la dejan sonar — es lista blanca, no negra: antes se enumeraban las que la cortaban y la música se colaba en las que nadie se acordó de sumar (elegir modo, mapa de niveles, resultado). Una pantalla nueva nace en silencio. Además `ensureMic()` la corta antes de abrir el micrófono, no después.
 
 ## Base de datos (Supabase)
 

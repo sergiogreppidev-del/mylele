@@ -28,10 +28,23 @@ function audioUrlFor(path){
   return path ? SUPA_URL+'/storage/v1/object/public/backing/'+String(path).split('/').map(encodeURIComponent).join('/') : null;
 }
 
-// Una canción puede traer VARIAS partituras: la jugable y la de fondo.
-// Nunca agarrar charts[0] a ciegas: el orden que devuelve la base no está garantizado.
+// Una canción puede traer VARIAS partituras: la jugable (en una o dos dificultades)
+// y la de fondo. Nunca agarrar charts[0] a ciegas: el orden que devuelve la base no
+// está garantizado.
 const BACKING_MODE='backing';
-function playableChart(s){ return (s.charts||[]).find(c=>c && c.mode!==BACKING_MODE) || null; }
+
+// La dificultad NO la elige el alumno: se la impone el juego según cómo progresa.
+// Por ahora siempre se sirve la fácil; cuando esté definida la progresión, este es
+// el único lugar que hay que tocar.
+function dificultadPara(){ return 'facil'; }
+
+function playableChart(s){
+  const jugables=(s.charts||[]).filter(c=>c && c.mode!==BACKING_MODE);
+  if(!jugables.length) return null;
+  const quiero=dificultadPara();
+  // Si la dificultad pedida no está cargada todavía, se cae a la que exista.
+  return jugables.find(c=>(c.difficulty||'facil')===quiero) || jugables[0];
+}
 function backingChartOf(s){ return (s.charts||[]).find(c=>c && c.mode===BACKING_MODE) || null; }
 function chartModeOf(s){ const c=playableChart(s); return (c&&c.mode)||'chords'; }
 
@@ -65,7 +78,7 @@ async function loadContent(){
     // 2) lista de niveles (canciones ordenadas)
     // Solo el chart PUBLICADO de cada canción: el editor deja borradores en la misma tabla
     // (published=false) y con !inner una canción sin chart publicado no aparece en el mapa.
-    const songs=await supaGet('songs?select=slug,title,level,bpm,time_sig,pickup_beats,audio_path,audio_offset_s,charts!inner(events,mode)&charts.published=is.true&order=level.asc');
+    const songs=await supaGet('songs?select=slug,title,level,bpm,time_sig,pickup_beats,audio_path,audio_offset_s,charts!inner(events,mode,difficulty)&charts.published=is.true&order=level.asc');
     // Una canción que solo tenga fondo publicado no es un nivel jugable: se descarta.
     const jugables=(songs||[]).filter(playableChart);
     if(jugables.length){

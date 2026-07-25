@@ -3,12 +3,44 @@
 
 let currentScreen='home', selectedMode='chords', micReady=false;
 
+/* ---------- Música del inicio ----------
+   El navegador no deja que un audio arranque sin que el usuario toque algo, así que
+   empieza en el primer toque. Y se corta en cualquier pantalla que use el micrófono:
+   si suena música por el parlante, el micrófono la escucha y arruina la detección. */
+const SILENT_SCREENS = ['game','tuner','calib','practice'];
+const introAudio = document.getElementById('introAudio');
+let introMuted = false;
+try{ introMuted = localStorage.getItem('mylele_music')==='off'; }catch(e){}
+
+function updateSoundBtn(){
+  const b=document.getElementById('soundBtn'); if(!b) return;
+  b.textContent = introMuted ? '🔇' : '🔊';
+  b.classList.toggle('muted', introMuted);
+  b.setAttribute('aria-label', introMuted ? 'Activar la música' : 'Silenciar la música');
+}
+function playIntro(){
+  if(!introAudio || introMuted || SILENT_SCREENS.includes(currentScreen)) return;
+  introAudio.play().catch(()=>{});   // si el navegador todavía no deja, se reintenta al próximo toque
+}
+function stopIntro(){ if(introAudio){ introAudio.pause(); introAudio.currentTime=0; } }
+
+document.getElementById('soundBtn')?.addEventListener('click', e=>{
+  e.stopPropagation();
+  introMuted=!introMuted;
+  try{ localStorage.setItem('mylele_music', introMuted?'off':'on'); }catch(err){}
+  updateSoundBtn();
+  if(introMuted) stopIntro(); else playIntro();
+});
+document.addEventListener('pointerdown', playIntro, {once:false});
+updateSoundBtn();
+
 /* ---------- Router ---------- */
 function go(name){
   const el=document.getElementById('screen-'+name); if(!el) return;
   document.querySelectorAll('.screen').forEach(s=>s.classList.remove('on'));
   el.classList.add('on'); currentScreen=name; el.scrollTop=0;
   if(rhythmActive) stopRhythm();          // salir de una pantalla corta el juego
+  if(SILENT_SCREENS.includes(name)) stopIntro(); else playIntro();
   if(name==='game') renderTrack();
 }
 
@@ -55,21 +87,80 @@ function buildLevelSelector(){
   });
 }
 
-/* ---------- Al terminar una canción: guardar estrellas ---------- */
+/* ---------- Al terminar una canción: guardar estrellas y mostrar el resultado ---------- */
 const _stopRhythm=stopRhythm;
 stopRhythm=function(){
   const wasPlaying = rhythmActive && !rhythmModeCalib;
-  const slug=curSlug;
+  const finished = rhythmFinished;      // llegó al final solo, no lo cortó el alumno
+  const slug=curSlug, meta=songMeta;
   _stopRhythm();
   if(wasPlaying && slug){
     const tot=rScore.perfect+rScore.good+rScore.miss;
-    if(tot>0){
-      const acc=Math.round((rScore.perfect+rScore.good)/tot*100);
-      const st=starsFor(acc);
-      if(st>0){ const p=getProgress(); if(!(p[slug]>=st)) { p[slug]=st; saveProgress(p); } }
-    }
+    const acc = tot? Math.round((rScore.perfect+rScore.good)/tot*100) : 0;
+    const st=starsFor(acc);
+    if(tot>0 && st>0){ const p=getProgress(); if(!(p[slug]>=st)) { p[slug]=st; saveProgress(p); } }
+    if(finished) showResult({slug, title:(meta&&meta.title)||'Nivel', acc, stars:st, combo:bestCombo,
+                             perfect:rScore.perfect, good:rScore.good, miss:rScore.miss});
   }
 };
+
+/* ---------- Pantalla de resultado ---------- */
+const TITULOS = ['Casi lo tenés','¡Bien ahí!','¡Muy bien!','¡Perfecto!'];
+const CONFETTI_COLORS = ['#FFC42E','#FF5F7E','#7FD94C','#4FC9F5','#A263FF'];
+let lastResultSlug=null;
+
+function showResult(r){
+  lastResultSlug=r.slug;
+  document.getElementById('resTitle').textContent = TITULOS[r.stars] || TITULOS[0];
+  document.getElementById('resLevel').textContent = r.title;
+  document.getElementById('resAcc').textContent = r.acc;
+  document.getElementById('resPerfect').textContent = r.perfect;
+  document.getElementById('resGood').textContent = r.good;
+  document.getElementById('resMiss').textContent = r.miss;
+  document.getElementById('resCombo').textContent = 'x'+r.combo;
+
+  // Las estrellas se encienden de a una (la animación está en el CSS).
+  const stars=document.querySelectorAll('#resStars .res-star');
+  stars.forEach(s=>s.classList.remove('on'));
+  requestAnimationFrame(()=>{ stars.forEach((s,i)=>{ if(i<r.stars) s.classList.add('on'); }); });
+
+  // Siguiente nivel: el que sigue en el mapa del modo actual, si está.
+  const list=levelsForMode();
+  const idx=list.findIndex(s=>s.slug===r.slug);
+  const next=(idx>=0 && idx<list.length-1)?list[idx+1]:null;
+  const btn=document.getElementById('resNext');
+  if(next){ btn.style.display=''; btn.textContent='Siguiente nivel →'; btn.dataset.slug=next.slug; }
+  else{ btn.style.display='none'; }
+
+  dropConfetti(r.stars>0 ? 28+r.stars*14 : 0);
+  go('result');
+}
+
+function dropConfetti(n){
+  const c=document.getElementById('confetti'); if(!c) return;
+  c.innerHTML='';
+  for(let i=0;i<n;i++){
+    const p=document.createElement('i');
+    p.style.left=(Math.random()*100)+'%';
+    p.style.background=CONFETTI_COLORS[i%CONFETTI_COLORS.length];
+    p.style.animationDuration=(1.6+Math.random()*1.4)+'s';
+    p.style.animationDelay=(Math.random()*0.7)+'s';
+    c.appendChild(p);
+  }
+  // Se limpian solos: si no, quedan cientos de nodos tras varias partidas.
+  setTimeout(()=>{ if(c) c.innerHTML=''; }, 4200);
+}
+
+document.getElementById('resRetry')?.addEventListener('click', async()=>{
+  if(!await ensureMic()) return;
+  go('game'); startRhythm(false);
+});
+document.getElementById('resNext')?.addEventListener('click', async e=>{
+  const slug=e.currentTarget.dataset.slug;
+  const s=levelsList.find(x=>x.slug===slug); if(!s) return;
+  if(!await ensureMic()) return;
+  loadSong(s); go('game');
+});
 
 /* ---------- Cableado ---------- */
 document.querySelectorAll('[data-go]').forEach(b=>{

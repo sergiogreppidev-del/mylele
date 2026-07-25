@@ -86,7 +86,41 @@ body{
 .logo span{color:var(--melon)}
 .tagline{background:var(--ink);color:#fff;font-weight:700;font-size:13.5px;
   padding:6px 16px;border-radius:100px;transform:rotate(-1.5deg);margin:0}
-.uke{font-size:60px;filter:drop-shadow(0 6px 0 rgba(58,42,99,.3));animation:sway 3.4s ease-in-out infinite}
+.uke{filter:drop-shadow(0 6px 0 rgba(58,42,99,.3));animation:sway 3.4s ease-in-out infinite;line-height:0}
+.uke svg{width:88px;height:auto;display:block}
+
+/* ---- Pantalla de resultado ---- */
+.screen.result{align-items:center;justify-content:center;text-align:center;gap:6px;position:relative;overflow:hidden}
+.res-title{font-family:'Titan One',cursive;font-weight:400;font-size:34px;color:#fff;margin:0;
+  text-shadow:0 4px 0 var(--ink),0 7px 10px rgba(58,42,99,.4)}
+.res-level{font-weight:800;color:var(--ink);background:rgba(255,255,255,.8);border:3px solid var(--ink);
+  border-radius:999px;padding:5px 16px;margin:2px 0 6px}
+/* Nombre propio: el mapa de niveles ya usa .stars con otra medida (ver más abajo). */
+.res-stars{display:flex;gap:10px;margin:6px 0 4px;line-height:1}
+.res-stars .res-star{font-size:52px;line-height:1;color:#D9CFEA;text-shadow:0 3px 0 rgba(58,42,99,.35);
+  transform:scale(.6);opacity:.35}
+.res-stars .res-star.on{color:var(--sun);opacity:1;animation:starPop .45s cubic-bezier(.34,1.56,.64,1) forwards}
+.res-stars .res-star:nth-child(2).on{animation-delay:.18s}
+.res-stars .res-star:nth-child(3).on{animation-delay:.36s}
+@keyframes starPop{0%{transform:scale(.6) rotate(-25deg)}70%{transform:scale(1.25) rotate(8deg)}100%{transform:scale(1) rotate(0)}}
+.res-acc{font-family:'Titan One',cursive;font-size:40px;color:#fff;text-shadow:0 3px 0 var(--ink);margin:2px 0}
+.res-acc small{font-family:'Baloo 2',sans-serif;font-size:14px;font-weight:800;margin-left:6px;text-shadow:none;color:var(--ink)}
+.res-combo{font-weight:800;color:var(--ink);margin:6px 0 12px}
+.res-actions{display:flex;flex-direction:column;align-items:center;gap:9px;width:100%;max-width:320px}
+.confetti{position:absolute;inset:0;pointer-events:none;overflow:hidden}
+.confetti i{position:absolute;top:-16px;width:11px;height:15px;border-radius:2px;opacity:.95;
+  animation:fall linear forwards}
+@keyframes fall{to{transform:translateY(105vh) rotate(720deg)}}
+
+/* Botón de silencio de la música del inicio */
+.sound-toggle{
+  position:absolute;top:calc(14px + env(safe-area-inset-top));right:16px;
+  width:44px;height:44px;font-size:20px;line-height:1;cursor:pointer;
+  background:var(--paper);border:3px solid var(--ink);border-radius:15px;
+  box-shadow:0 4px 0 #D9CFEA;transition:transform .06s,box-shadow .06s;
+}
+.sound-toggle:active{transform:translateY(3px);box-shadow:0 1px 0 #D9CFEA}
+.sound-toggle.muted{filter:grayscale(1);opacity:.65}
 @keyframes sway{0%,100%{transform:rotate(-7deg)}50%{transform:rotate(7deg)}}
 .play-big{font-family:'Titan One',cursive;font-weight:400;font-size:34px;letter-spacing:1px;
   padding:20px 60px;border-radius:26px;border-width:4px}

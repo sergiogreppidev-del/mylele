@@ -122,6 +122,7 @@ function saveLatency(){ try{ localStorage.setItem('mylele_lat', String(latencyMs
 function loadLatency(){ try{ const v=localStorage.getItem('mylele_lat'); if(v!==null && v!==''){ latencyMs=parseInt(v); const el=document.getElementById('latVal'); if(el) el.textContent=latencyMs+' ms'; } }catch(e){} }
 let rhythmActive=false;
 let rhythmModeCalib=false;       // true = estamos calibrando
+let rhythmFinished=false;        // true = el nivel llegó al final (no lo cortó el alumno)
 let clickMuted=false;
 
 const COUNT_IN=4;                // pulsos de preparación (con sonido)
@@ -230,6 +231,27 @@ function pitchToFreq(txt){
   const midi=(Number(m[3])+1)*12 + pc + alter;
   return 440*Math.pow(2,(midi-69)/12);
 }
+// --- acompañamiento GRABADO (reemplaza al sintetizado cuando el nivel tiene audio) ---
+// Contrato: la grabación arranca en el TIEMPO 1 del chart (sin cuenta de entrada) y
+// está al BPM del nivel. `audio_offset_s` corrige lo que siempre sobra o falta al
+// principio de una grabación real, sin tener que volver a editar el archivo.
+let audioSource=null;
+function hasRecordedBacking(){ return !!(songAudioUrl && songAudioBuffer); }
+function scheduleRecordedBacking(){
+  if(clickMuted || !hasRecordedBacking()) return;
+  try{
+    audioSource=audioCtx.createBufferSource();
+    audioSource.buffer=songAudioBuffer;
+    audioSource.connect(musicGain||audioCtx.destination);
+    const when = startTime + COUNT_IN*beatDur + songAudioOffset;
+    if(when >= audioCtx.currentTime) audioSource.start(when);
+    else audioSource.start(audioCtx.currentTime, audioCtx.currentTime - when); // ya pasó: entra por el medio
+  }catch(e){ console.warn('No se pudo arrancar el acompañamiento grabado.', e); audioSource=null; }
+}
+function stopRecordedBacking(){
+  if(audioSource){ try{ audioSource.stop(); }catch(e){} audioSource=null; }
+}
+
 function scheduleBackingMelody(){
   if(clickMuted || !backingNotes || !backingNotes.length) return;
   for(const n of backingNotes){
@@ -245,6 +267,7 @@ function startRhythm(calibrate){
   if(musicGain){ musicGain.gain.cancelScheduledValues(audioCtx.currentTime); musicGain.gain.setValueAtTime(1, audioCtx.currentTime); }
   rhythmModeCalib=calibrate;
   rhythmActive=true;
+  rhythmFinished=false;
   beatDur=60/bpm;
   startTime=audioCtx.currentTime + 0.3;
   rScore={perfect:0,good:0,miss:0}; updateRScore();
@@ -284,9 +307,16 @@ function startRhythm(calibrate){
     );
     totalBeats = COUNT_IN + Math.ceil(lastBeat) + 1;
     expected=[];                        // en modo acordes no usamos onsets
-    for(let i=0;i<totalBeats;i++){ scheduleClick(startTime+i*beatDur, (i%4)===0); }
-    scheduleBacking();                  // 🎵 groove reggae sincronizado
-    scheduleBackingMelody();            // 🎶 melodía de fondo del nivel, si tiene
+    // Con acompañamiento grabado el clic marca solo la cuenta de entrada y después se
+    // calla: encima de una grabación real, el metrónomo tapa la música y molesta.
+    const clickHasta = hasRecordedBacking() ? COUNT_IN : totalBeats;
+    for(let i=0;i<clickHasta;i++){ scheduleClick(startTime+i*beatDur, (i%4)===0); }
+    if(hasRecordedBacking()){
+      scheduleRecordedBacking();        // 🎧 la grabación reemplaza a todo lo sintetizado
+    }else{
+      scheduleBacking();                // 🎵 groove reggae sincronizado
+      scheduleBackingMelody();          // 🎶 melodía de fondo del nivel, si tiene
+    }
     combo=0; bestCombo=0; bursts=[];
     startTrackLoop();
     document.getElementById('playBtn').textContent='⏹ Detener';
@@ -296,6 +326,7 @@ function startRhythm(calibrate){
 
 function stopRhythm(){
   rhythmActive=false;
+  stopRecordedBacking();
   if(musicGain){ musicGain.gain.cancelScheduledValues(audioCtx.currentTime); musicGain.gain.setValueAtTime(0.0001, audioCtx.currentTime); }
   document.getElementById('playBtn').textContent='▶ Empezar';
   document.getElementById('calibBtn').textContent='🎯 Calibrar latencia';
@@ -563,7 +594,9 @@ function rhythmTick(){
   if(!rhythmActive) return;
   const now=audioCtx.currentTime;
   const beat = Math.floor((now-startTime)/beatDur);
-  if(beat>=totalBeats+1){ stopRhythm(); return; }
+  // Llegó al final por sí solo: el nivel se terminó de verdad. Si el alumno se sale
+  // antes, stopRhythm también corre pero sin esta marca, y no se muestra resultado.
+  if(beat>=totalBeats+1){ rhythmFinished=true; stopRhythm(); return; }
 
   if(beat!==lastBeatShown && beat>=0 && beat<totalBeats){
     lastBeatShown=beat;

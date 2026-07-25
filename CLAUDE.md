@@ -18,7 +18,8 @@ config.js → content.js → audio-engine.js → core.js → tuner.js → chords
 
 | Archivo | Responsabilidad |
 |---|---|
-| `index.html` | Estructura de las 7 pantallas |
+| `index.html` | Estructura de las 8 pantallas (incluye el resultado al terminar un nivel) |
+| `intro.mp3` | Música de la pantalla de inicio |
 | `styles.css` | Sistema de diseño (tokens, botones caramelo, pantallas) |
 | `config.js` | Notas, cuerdas GCEA, acordes y sus plantillas de detección |
 | `content.js` | Carga de contenido (niveles/acordes) desde Supabase |
@@ -66,7 +67,9 @@ Proyecto `mylele` · id `duvflmqbagnlhznuqjhr` · región São Paulo · `https:/
 > ⚠️ `content.js` carga **todos** los acordes de la tabla, no una lista fija. Si se vuelve a cablear (`['C','Am','F','G']`), los acordes nuevos que se carguen desde el editor se ignoran y los niveles que los usen no se dibujan ni se detectan.
 >
 > `weights[]` lleva un peso por cada `pitch_classes[]`, en la misma posición — por eso un acorde puede ser tríada (3 notas) o séptima (4). Los pesos del **G** (`{1.0,1.6,0.5}`) son la calibración validada con grabaciones reales: no tocarlos sin volver a medir.
-- **`songs`** — niveles: `id`, `slug`, `title`, `artist`, `level`, `bpm`, `time_sig`, `tuning`, `audio_path`, `is_free`, `duration_s`.
+- **`songs`** — niveles: `id`, `slug`, `title`, `artist`, `level`, `bpm`, `time_sig`, `tuning`, `audio_path`, `audio_offset_s`, `is_free`, `duration_s`.
+
+**Acompañamiento grabado:** si el nivel tiene `audio_path`, el archivo se busca en el bucket **`backing`** de Storage (lectura pública, escritura solo para admins) y **reemplaza a todo lo sintetizado**; si no, se sintetiza como siempre. El contrato es que la grabación arranca en el **tiempo 1** (sin cuenta de entrada grabada) y está al BPM del nivel; `audio_offset_s` corrige el desfase sin volver a editar el archivo. Se decodifica a un `AudioBuffer` y se arranca con `start()` sobre el **mismo reloj** que el metrónomo: una etiqueta `<audio>` llega con decenas de ms de error y se escucha corrida. Con grabación, el metrónomo suena solo en la cuenta de entrada.
 - **`charts`** — la partitura: `id`, `song_id`→`songs.id`, `mode` (`'chords'`|`'melody'`), `version`, `events` (jsonb), `published` (bool), único por (`song_id`,`mode`,`version`).
 - **`admins`** — quién puede editar contenido desde el editor. Se toca **solo desde el SQL editor** de Supabase.
 
@@ -116,8 +119,6 @@ Mantener esta paleta y tipografía en cualquier pantalla o herramienta nueva (in
 
 ## Qué falta (próximos pasos conocidos)
 
-- Pantalla de resultado al terminar un nivel (estrellas, celebración).
-- Más niveles y acordes (D, Em, G7, C7…).
-- Audio de acompañamiento grabado en Supabase Storage (hoy se sintetiza en el navegador).
+- Más niveles y acordes (D, Em, G7, C7…): ya se cargan desde el editor, sin SQL.
 - Probar con ukelele real la detección de los acordes que se carguen nuevos (D, Em, G7…): el motor solo está calibrado contra grabaciones de C, Am, F y G.
 - A futuro: app nativa Android con el motor de audio reescrito en C++.

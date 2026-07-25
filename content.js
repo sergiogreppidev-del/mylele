@@ -10,6 +10,13 @@ let songEvents=[], songMeta=null, songMode='chords', levelsList=[], curSlug=null
 // Formato: [{t, pitch:'G4', dur}] — tiempos en beats, igual que el resto.
 let backingNotes=[];
 
+// Acompañamiento GRABADO (opcional, por nivel). Si el nivel tiene uno, reemplaza
+// al sintetizado. El archivo vive en el bucket `backing` de Supabase Storage.
+let songAudioUrl=null, songAudioOffset=0, songAudioBuffer=null;
+function audioUrlFor(path){
+  return path ? SUPA_URL+'/storage/v1/object/public/backing/'+String(path).split('/').map(encodeURIComponent).join('/') : null;
+}
+
 // Una canción puede traer VARIAS partituras: la jugable y la de fondo.
 // Nunca agarrar charts[0] a ciegas: el orden que devuelve la base no está garantizado.
 const BACKING_MODE='backing';
@@ -47,7 +54,7 @@ async function loadContent(){
     // 2) lista de niveles (canciones ordenadas)
     // Solo el chart PUBLICADO de cada canción: el editor deja borradores en la misma tabla
     // (published=false) y con !inner una canción sin chart publicado no aparece en el mapa.
-    const songs=await supaGet('songs?select=slug,title,level,bpm,charts!inner(events,mode)&charts.published=is.true&order=level.asc');
+    const songs=await supaGet('songs?select=slug,title,level,bpm,audio_path,audio_offset_s,charts!inner(events,mode)&charts.published=is.true&order=level.asc');
     // Una canción que solo tenga fondo publicado no es un nivel jugable: se descarta.
     const jugables=(songs||[]).filter(playableChart);
     if(jugables.length){
@@ -57,9 +64,29 @@ async function loadContent(){
   }catch(e){
     console.warn('No se pudo cargar de Supabase, uso respaldo local.', e);
     songEvents=DEFAULT_EVENTS.slice(); songMode='chords'; backingNotes=[];
+    songAudioUrl=null; songAudioBuffer=null; songAudioOffset=0;
     setContentStatus('⚠ Sin conexión con Supabase — usando progresión local (C·Am·F·G)','warn');
   }
 }
+/* El audio se decodifica a un buffer en vez de usar una etiqueta <audio> porque hay
+   que arrancarlo EN EL MISMO RELOJ que el metrónomo. Un play() común llega con
+   decenas de milisegundos de error y la grabación se escucha corrida del chart. */
+const _audioCache={};
+async function preloadSongAudio(url){
+  try{
+    if(_audioCache[url]){ songAudioBuffer=_audioCache[url]; return; }
+    const r=await fetch(url); if(!r.ok) throw new Error('audio '+r.status);
+    const bytes=await r.arrayBuffer();
+    const ctx=audioCtx || new (window.AudioContext||window.webkitAudioContext)();
+    const buf=await ctx.decodeAudioData(bytes);
+    _audioCache[url]=buf;
+    if(songAudioUrl===url) songAudioBuffer=buf;
+  }catch(e){
+    console.warn('No se pudo cargar el acompañamiento grabado; se usa el sintetizado.', e);
+    if(songAudioUrl===url){ songAudioUrl=null; songAudioBuffer=null; }
+  }
+}
+
 function buildLevelSelector(){
   const cont=document.getElementById('levels'); if(!cont) return; cont.innerHTML='';
   levelsList.forEach(s=>{
@@ -79,6 +106,10 @@ function loadSong(s){
   songEvents=(chart&&Array.isArray(chart.events))?chart.events:[];
   const bck=backingChartOf(s);
   backingNotes=(bck&&Array.isArray(bck.events))?bck.events:[];
+  songAudioUrl=audioUrlFor(s.audio_path);
+  songAudioOffset=Number(s.audio_offset_s)||0;
+  songAudioBuffer=null;
+  if(songAudioUrl) preloadSongAudio(songAudioUrl);   // se decodifica ya, para que Empezar no trabe
   document.querySelectorAll('#levels .lvbtn').forEach(b=>b.classList.toggle('active', b.dataset.slug===s.slug));
   const tipo = songMode==='melody'?'notas':'acordes';
   setContentStatus('🎵 <b>'+s.title+'</b> · '+songEvents.length+' '+tipo+' · desde Supabase ✓','ok');

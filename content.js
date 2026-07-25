@@ -26,13 +26,23 @@ function setContentStatus(txt,cls){ const el=document.getElementById('contentSta
 
 async function loadContent(){
   try{
-    // 1) acordes (con digitación) -> reconstruye las plantillas de detección
-    const rows=await supaGet('chords?select=*');
-    if(rows && rows.length){
-      const order=['C','Am','F','G']; const byId={}; rows.forEach(r=>byId[r.id]=r);
-      const built=order.filter(id=>byId[id]).map(id=>{ const r=byId[id];
-        return {name:r.id, sub:r.name_es, pcs:r.pitch_classes, w:(r.id==='G'?[1.0,1.6,0.5]:[1.3,1.0,1.0]), frets:r.frets, fingers:r.fingers}; });
-      if(built.length===4){ CHORDS.length=0; built.forEach(c=>{ buildChordTemplate(c); CHORDS.push(c); }); setTarget(0); }
+    // 1) acordes (con digitación) -> reconstruye las plantillas de detección.
+    // Se cargan TODOS los que haya en la base, en su orden: si acá se cablea una
+    // lista fija, los acordes nuevos que se carguen desde el editor se ignoran y
+    // los niveles que los usen no se dibujan ni se detectan.
+    const rows=await supaGet('chords?select=*&order=sort_order.asc,id.asc');
+    const built=(rows||[])
+      .filter(r=>r && Array.isArray(r.pitch_classes) && r.pitch_classes.length)
+      .map(r=>({
+        name:r.id, sub:r.name_es, pcs:r.pitch_classes,
+        // Un peso por pitch class. Si faltan (acorde viejo), se completa con 1.
+        w:(Array.isArray(r.weights)&&r.weights.length===r.pitch_classes.length)
+            ? r.weights.map(Number)
+            : r.pitch_classes.map((_,i)=>i===0?1.3:1.0),
+        frets:r.frets, fingers:r.fingers
+      }));
+    if(built.length){
+      CHORDS.length=0; built.forEach(c=>{ buildChordTemplate(c); CHORDS.push(c); }); setTarget(0);
     }
     // 2) lista de niveles (canciones ordenadas)
     // Solo el chart PUBLICADO de cada canción: el editor deja borradores en la misma tabla

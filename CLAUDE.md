@@ -61,7 +61,11 @@ Carpeta local: `../mylele-editor`. Es donde se crean y publican los niveles.
 
 Proyecto `mylele` · id `duvflmqbagnlhznuqjhr` · región São Paulo · `https://duvflmqbagnlhznuqjhr.supabase.co`
 
-- **`chords`** — catálogo: `id` PK (`'C'`,`'Am'`,...), `name_es`, `frets[]` (por cuerda G,C,E,A), `fingers[]`, `pitch_classes[]`.
+- **`chords`** — catálogo: `id` PK (`'C'`,`'Am'`,...), `name_es`, `frets[]` (por cuerda G,C,E,A), `fingers[]`, `pitch_classes[]`, `weights[]`, `sort_order`.
+
+> ⚠️ `content.js` carga **todos** los acordes de la tabla, no una lista fija. Si se vuelve a cablear (`['C','Am','F','G']`), los acordes nuevos que se carguen desde el editor se ignoran y los niveles que los usen no se dibujan ni se detectan.
+>
+> `weights[]` lleva un peso por cada `pitch_classes[]`, en la misma posición — por eso un acorde puede ser tríada (3 notas) o séptima (4). Los pesos del **G** (`{1.0,1.6,0.5}`) son la calibración validada con grabaciones reales: no tocarlos sin volver a medir.
 - **`songs`** — niveles: `id`, `slug`, `title`, `artist`, `level`, `bpm`, `time_sig`, `tuning`, `audio_path`, `is_free`, `duration_s`.
 - **`charts`** — la partitura: `id`, `song_id`→`songs.id`, `mode` (`'chords'`|`'melody'`), `version`, `events` (jsonb), `published` (bool), único por (`song_id`,`mode`,`version`).
 - **`admins`** — quién puede editar contenido desde el editor. Se toca **solo desde el SQL editor** de Supabase.
@@ -115,5 +119,5 @@ Mantener esta paleta y tipografía en cualquier pantalla o herramienta nueva (in
 - Pantalla de resultado al terminar un nivel (estrellas, celebración).
 - Más niveles y acordes (D, Em, G7, C7…).
 - Audio de acompañamiento grabado en Supabase Storage (hoy se sintetiza en el navegador).
-- Editor de niveles: **fase 1 lista** (acordes) en el repo hermano `mylele-editor`. Falta el modo notas (tablatura) y el ABM de acordes.
+- Probar con ukelele real la detección de los acordes que se carguen nuevos (D, Em, G7…): el motor solo está calibrado contra grabaciones de C, Am, F y G.
 - A futuro: app nativa Android con el motor de audio reescrito en C++.

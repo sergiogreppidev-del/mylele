@@ -30,7 +30,7 @@ function setTarget(i){
   elDetectedTxt.textContent='Escuchando…';
 }
 
-// Dibuja el diagrama de digitación del acorde (cuerdas G C E A, trastes 1-4)
+// Dibuja el diagrama de digitación del acorde (cuerdas G C E A, ventana de 4 trastes)
 function drawChordDiagram(chord){
   const strings=['G','C','E','A'];
   const nStr=4, nFr=4;
@@ -38,12 +38,22 @@ function drawChordDiagram(chord){
   const left=40, right=160, top=36, bottom=136;
   const sSpace=(right-left)/(nStr-1);   // 40 px entre cuerdas
   const fSpace=(bottom-top)/nFr;        // 25 px entre trastes
+
+  // Si el acorde no entra en los primeros 4 trastes, la ventana se corre hacia
+  // arriba del mástil y se rotula la posición (como en cualquier diagrama).
+  const pressed=(chord.frets||[]).filter(f=>f>0);
+  const maxFret=pressed.length?Math.max(...pressed):0;
+  const base=(maxFret>nFr)?Math.min(...pressed)-1:0;
+
   let svg=`<svg viewBox="0 0 ${W} ${H}" width="100%" style="max-width:230px" xmlns="http://www.w3.org/2000/svg">`;
-  // trastes (líneas horizontales); la cejuela (nut) más gruesa
+  // trastes (líneas horizontales); la cejuela (nut) más gruesa, solo en la posición 1
   for(let f=0; f<=nFr; f++){
     const y=top+f*fSpace;
-    const sw=(f===0)?4:1.4;
+    const sw=(f===0&&base===0)?4:1.4;
     svg+=`<line x1="${left}" y1="${y}" x2="${right}" y2="${y}" stroke="#3A2A63" stroke-width="${sw}" stroke-linecap="round"/>`;
+  }
+  if(base>0){
+    svg+=`<text x="${left-12}" y="${top+fSpace*0.5}" fill="#6B5A93" font-size="11" font-weight="800" text-anchor="middle" dominant-baseline="central">${base+1}ª</text>`;
   }
   // cuerdas (líneas verticales)
   for(let s=0; s<nStr; s++){
@@ -59,7 +69,7 @@ function drawChordDiagram(chord){
       // cuerda al aire: "O" sobre la cejuela
       svg+=`<circle cx="${x}" cy="20" r="6" fill="none" stroke="#6B5A93" stroke-width="1.6"/>`;
     }else{
-      const y=top+(fr-0.5)*fSpace;
+      const y=top+(fr-base-0.5)*fSpace;
       svg+=`<circle cx="${x}" cy="${y}" r="10" fill="#FF5F7E"/>`;
       if(fg>0) svg+=`<text x="${x}" y="${y+0.5}" fill="#FFFFFF" font-size="12" font-weight="800" text-anchor="middle" dominant-baseline="central">${fg}</text>`;
     }

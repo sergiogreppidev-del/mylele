@@ -62,7 +62,9 @@ Carpeta local: `../mylele-editor`. Es donde se crean y publican los niveles.
 - **Ventanas de acierto anchas** (±130 ms justo / ±240 ms cerca): sensación arcade, no exigencia de músico profesional.
 - **Afinar antes de practicar acordes** — con una cuerda desafinada, la detección de acordes falla y parece un bug del algoritmo.
 - El progreso se guarda en `localStorage` (`mylele_progress`), así que en ventana privada arranca de cero.
-- **La música de inicio suena solo en la pantalla de presentación.** `MUSIC_SCREENS` (`ui.js`) lista las pantallas que la dejan sonar — es lista blanca, no negra: antes se enumeraban las que la cortaban y la música se colaba en las que nadie se acordó de sumar (elegir modo, mapa de niveles, resultado). Una pantalla nueva nace en silencio. Además `ensureMic()` la corta antes de abrir el micrófono, no después.
+- **La música de inicio suena en la presentación, en «¿Qué practicamos?» y en el resultado.** `MUSIC_SCREENS` (`ui.js`) lista las pantallas que la dejan sonar — es lista blanca, no negra: antes se enumeraban las que la cortaban y la música se colaba en las que nadie se acordó de sumar. Una pantalla nueva nace en silencio. Entre presentación y «¿Qué practicamos?» sigue de corrido; al resultado entra siempre desde el principio, porque `stopIntro()` deja el tema en cero al salir.
+
+> `ensureMic(destino)` recibe la pantalla a la que se va y corta la música **antes** de abrir el micrófono, no después: el cartel de permiso puede tardar y mientras tanto el micrófono ya escucha el parlante. Corta solo si el destino es mudo — sin ese detalle, «JUGAR» reiniciaba el tema al entrar a «¿Qué practicamos?». Si sumás una pantalla a `MUSIC_SCREENS`, revisá que su llamada a `ensureMic()` pase el destino correcto.
 
 ## Base de datos (Supabase)
 

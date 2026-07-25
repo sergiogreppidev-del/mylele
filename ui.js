@@ -5,14 +5,21 @@ let currentScreen='home', selectedMode='chords', micReady=false;
 
 /* ---------- Música del inicio ----------
    El navegador no deja que un audio arranque sin que el usuario toque algo, así que
-   empieza en el primer toque. Suena SOLO en la pantalla de presentación: apenas se
-   entra a jugar, afinar o calibrar se corta.
+   empieza en el primer toque.
 
    Es la lista de las pantallas que la DEJAN sonar, no de las que la cortan. Antes era
-   al revés y por eso la música seguía en «¿Qué practicamos?», en el mapa de niveles y
-   en el resultado: nadie se acordó de sumarlas. Así una pantalla nueva nace en
-   silencio en vez de heredar la música por olvido. */
-const MUSIC_SCREENS = ['home'];
+   al revés y por eso la música se colaba en pantallas que nadie se acordó de sumar.
+   Así una pantalla nueva nace en silencio en vez de heredar la música por olvido.
+
+   Suena en la presentación, en «¿Qué practicamos?» y en el resultado. Se corta en
+   todo lo que use el micrófono (jugar, afinar, calibrar, práctica libre) y en el mapa
+   de niveles, que es la antesala del juego.
+
+   Entre `home` y `mode` la música NO se reinicia: sigue de corrido, porque nunca se
+   llega a pausar. En el resultado, en cambio, arranca siempre desde el principio —
+   `stopIntro()` deja el tema en cero al salir, y a esa pantalla se entra después de
+   haber pasado por el mapa de niveles y el juego, que lo cortaron. */
+const MUSIC_SCREENS = ['home','mode','result'];
 const introAudio = document.getElementById('introAudio');
 let introMuted = false;
 try{ introMuted = localStorage.getItem('mylele_music')==='off'; }catch(e){}
@@ -50,10 +57,13 @@ function go(name){
 }
 
 /* ---------- Micrófono (se pide en el primer toque) ---------- */
-async function ensureMic(){
-  // Se corta acá y no en go(): pedir el permiso puede tardar (el cartel del navegador),
-  // y mientras tanto el micrófono ya está abierto escuchando la música por el parlante.
-  stopIntro();
+/* `destino` es la pantalla a la que se va apenas haya permiso. La música se corta acá
+   y no en go() porque pedir el permiso puede tardar (el cartel del navegador), y
+   mientras tanto el micrófono ya está abierto escuchando la música por el parlante.
+   Pero solo si el destino es una pantalla muda: yendo a «¿Qué practicamos?» la música
+   tiene que seguir de corrido, y cortarla acá la haría volver a empezar. */
+async function ensureMic(destino){
+  if(!MUSIC_SCREENS.includes(destino)) stopIntro();
   if(micReady) return true;
   const ok=await start();
   if(ok){ micReady=true; document.getElementById('liveDot')?.classList.add('live'); }
@@ -86,7 +96,7 @@ function buildLevelSelector(){
       +'<span class="stars">'+(done?'⭐'.repeat(st)+'☆'.repeat(3-st):'')+'</span>'
       +'<span class="nm">'+s.title.replace(/^Nivel \d+ · /,'')+'</span>';
     if(unlocked) b.addEventListener('click',async()=>{
-      if(!await ensureMic()) return;
+      if(!await ensureMic('game')) return;
       loadSong(s);
       document.getElementById('gameTitle').textContent=s.title.replace(/^Nivel \d+ · /,'');
       go('game');
@@ -160,13 +170,13 @@ function dropConfetti(n){
 }
 
 document.getElementById('resRetry')?.addEventListener('click', async()=>{
-  if(!await ensureMic()) return;
+  if(!await ensureMic('game')) return;
   go('game'); startRhythm(false);
 });
 document.getElementById('resNext')?.addEventListener('click', async e=>{
   const slug=e.currentTarget.dataset.slug;
   const s=levelsList.find(x=>x.slug===slug); if(!s) return;
-  if(!await ensureMic()) return;
+  if(!await ensureMic('game')) return;
   loadSong(s); go('game');
 });
 
@@ -174,13 +184,13 @@ document.getElementById('resNext')?.addEventListener('click', async e=>{
 document.querySelectorAll('[data-go]').forEach(b=>{
   b.addEventListener('click', async()=>{
     const dest=b.dataset.go;
-    if(dest==='tuner'||dest==='calib'||dest==='practice'){ if(!await ensureMic()) return; }
+    if(dest==='tuner'||dest==='calib'||dest==='practice'){ if(!await ensureMic(dest)) return; }
     if(dest==='levels') buildLevelSelector();
     go(dest);
   });
 });
 document.getElementById('startBtn').addEventListener('click', async()=>{
-  if(!await ensureMic()) return;
+  if(!await ensureMic('mode')) return;   // 'mode' tiene música: no se corta al pedir el permiso
   go('mode');
 });
 document.querySelectorAll('.mode[data-mode]').forEach(b=>{

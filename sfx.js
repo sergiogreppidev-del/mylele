@@ -19,7 +19,11 @@ function sfxReady(){
   try{
     sfxCtx  = new (window.AudioContext || window.webkitAudioContext)();
     sfxGain = sfxCtx.createGain();
-    sfxGain.gain.value = 0.22;        // discreto: acompaña al toque, no lo tapa
+    /* Volumen general de los efectos. El pico real de cada sonido es este número por
+       el `pico` de su voz (abajo): con 0.22 daba ~0.11 de amplitud y no se escuchaba.
+       0.9 es el techo sano — más arriba las dos notas de `confirm`, que se pisan un
+       instante, sumarían más de 1 y el sonido saldría distorsionado. */
+    sfxGain.gain.value = 0.9;
     sfxGain.connect(sfxCtx.destination);
   }catch(e){ sfxCtx = null; return false; }   // sin audio, los botones siguen andando
   return true;
@@ -43,14 +47,15 @@ function sfxTono(desde, hasta, dur, tipo, pico, demora){
 
 const SFX = {
   // El de todos los días: sube, corto y brillante.
-  tap:     ()=>{ sfxTono(620, 900, 0.07, 'triangle', 0.50); },
+  tap:     ()=>{ sfxTono(620, 900, 0.07, 'triangle', 0.55); },
   // Volver: el mismo gesto al revés, así se distingue sin mirar.
-  back:    ()=>{ sfxTono(520, 320, 0.09, 'triangle', 0.42); },
+  back:    ()=>{ sfxTono(520, 320, 0.09, 'triangle', 0.50); },
   // Arrancar algo (jugar, empezar, siguiente nivel): dos notas para arriba, D5 → A5.
-  confirm: ()=>{ sfxTono(587.33, 587.33, 0.07, 'triangle', 0.50, 0);
-                 sfxTono(880,    880,    0.12, 'triangle', 0.45, 0.06); },
-  // Nivel bloqueado: golpe sordo. No pasa nada y el sonido lo dice.
-  locked:  ()=>{ sfxTono(180, 120, 0.14, 'square', 0.22); }
+  confirm: ()=>{ sfxTono(587.33, 587.33, 0.07, 'triangle', 0.55, 0);
+                 sfxTono(880,    880,    0.12, 'triangle', 0.50, 0.06); },
+  /* Nivel bloqueado: golpe sordo. Va más bajo que el resto a propósito — es onda
+     cuadrada y grave, que a igual número suena bastante más fuerte y áspera. */
+  locked:  ()=>{ sfxTono(180, 120, 0.14, 'square', 0.30); }
 };
 
 function sfx(nombre){

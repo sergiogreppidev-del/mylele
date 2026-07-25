@@ -113,12 +113,18 @@ body{
 @keyframes fall{to{transform:translateY(105vh) rotate(720deg)}}
 
 /* Botón de silencio de la música del inicio */
+/* Vive fuera de las pantallas (ver index.html), así que va fijo a la ventana y por
+   encima de ellas: .screen es z-index 1. */
 .sound-toggle{
-  position:absolute;top:calc(14px + env(safe-area-inset-top));right:16px;
+  position:fixed;top:calc(14px + env(safe-area-inset-top));right:16px;z-index:5;
   width:44px;height:44px;font-size:20px;line-height:1;cursor:pointer;
   background:var(--paper);border:3px solid var(--ink);border-radius:15px;
   box-shadow:0 4px 0 #D9CFEA;transition:transform .06s,box-shadow .06s;
 }
+.sound-toggle[hidden]{display:none}   /* `hidden` solo no gana contra otras reglas */
+/* El título de «¿Qué practicamos?» comparte la fila de arriba con el botón: sin este
+   hueco se le mete abajo en pantallas angostas. */
+#screen-mode .top{padding-right:52px}
 .sound-toggle:active{transform:translateY(3px);box-shadow:0 1px 0 #D9CFEA}
 .sound-toggle.muted{filter:grayscale(1);opacity:.65}
 @keyframes sway{0%,100%{transform:rotate(-7deg)}50%{transform:rotate(7deg)}}

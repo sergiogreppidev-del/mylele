@@ -58,8 +58,10 @@ const SFX = {
   locked:  ()=>{ sfxTono(180, 120, 0.14, 'square', 0.30); }
 };
 
+/* El botón 🔊 NO silencia esto: apaga la música y nada más. Son cosas distintas —
+   la música es ambiente y se apaga por gusto o por respeto al de al lado; el efecto
+   es la respuesta al toque, y sin él los botones se sienten muertos. */
 function sfx(nombre){
-  if(introMuted) return;            // el 🔊 de la pantalla de inicio manda sobre todo
   if(!sfxReady()) return;
   try{ (SFX[nombre] || SFX.tap)(); }catch(e){}
 }
@@ -76,7 +78,6 @@ const SFX_POR_SELECTOR = [
 document.addEventListener('pointerdown', e=>{
   const b = e.target.closest && e.target.closest('button');
   if(!b) return;
-  if(b.id === 'soundBtn') return;   // ese lo toca su propio handler, DESPUÉS de conmutar
   let voz = 'tap';
   for(const [sel, v] of SFX_POR_SELECTOR){ if(b.matches(sel)){ voz = v; break; } }
   sfx(voz);

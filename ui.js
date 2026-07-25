@@ -24,8 +24,12 @@ const introAudio = document.getElementById('introAudio');
 let introMuted = false;
 try{ introMuted = localStorage.getItem('mylele_music')==='off'; }catch(e){}
 
+/* Sincroniza el botón con todo su estado: si se ve, y cómo se ve. Se llama al
+   conmutarlo y en cada cambio de pantalla — es uno solo para toda la app, así que
+   aparece justo en las pantallas que tienen música y en ninguna otra. */
 function updateSoundBtn(){
   const b=document.getElementById('soundBtn'); if(!b) return;
+  b.hidden = !MUSIC_SCREENS.includes(currentScreen);
   b.textContent = introMuted ? '🔇' : '🔊';
   b.classList.toggle('muted', introMuted);
   b.setAttribute('aria-label', introMuted ? 'Activar la música' : 'Silenciar la música');
@@ -41,7 +45,7 @@ document.getElementById('soundBtn')?.addEventListener('click', e=>{
   introMuted=!introMuted;
   try{ localStorage.setItem('mylele_music', introMuted?'off':'on'); }catch(err){}
   updateSoundBtn();
-  if(introMuted) stopIntro(); else { sfx('tap'); playIntro(); }   // el efecto confirma que volvió el sonido
+  if(introMuted) stopIntro(); else playIntro();
 });
 document.addEventListener('pointerdown', playIntro, {once:false});
 updateSoundBtn();
@@ -53,6 +57,7 @@ function go(name){
   el.classList.add('on'); currentScreen=name; el.scrollTop=0;
   if(rhythmActive) stopRhythm();          // salir de una pantalla corta el juego
   if(MUSIC_SCREENS.includes(name)) playIntro(); else stopIntro();
+  updateSoundBtn();                       // el botón se muestra solo donde hay música
   if(name==='game') renderTrack();
 }
 

@@ -61,7 +61,6 @@
   <!-- El navegador no deja que un audio arranque sin que el usuario toque algo:
        por eso empieza en el primer toque, no al cargar la página. -->
   <audio id="introAudio" src="intro.mp3" preload="auto"></audio>
-  <button class="sound-toggle" id="soundBtn" aria-label="Silenciar la música">🔊</button>
 </section>
 
 <!-- ══════════ ELEGIR MODO ══════════ -->
@@ -197,6 +196,11 @@
       <button class="cbtn ghost sm" id="clearLogBtn">Borrar</button></div>
   </div>
 </section>
+
+<!-- Fuera de las pantallas a propósito: es uno solo para toda la app y se muestra en
+     las que tienen música (ver MUSIC_SCREENS en ui.js). Duplicarlo por pantalla
+     obligaba a mantener tres botones en el mismo estado. -->
+<button class="sound-toggle" id="soundBtn" hidden aria-label="Silenciar la música">🔊</button>
 
 <script src="config.js"></script>
 <script src="content.js"></script>

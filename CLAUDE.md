@@ -66,6 +66,9 @@ Carpeta local: `../mylele-editor`. Es donde se crean y publican los niveles.
 
 > `ensureMic(destino)` recibe la pantalla a la que se va y corta la música **antes** de abrir el micrófono, no después: el cartel de permiso puede tardar y mientras tanto el micrófono ya escucha el parlante. Corta solo si el destino es mudo — sin ese detalle, «JUGAR» reiniciaba el tema al entrar a «¿Qué practicamos?». Si sumás una pantalla a `MUSIC_SCREENS`, revisá que su llamada a `ensureMic()` pase el destino correcto.
 
+> El botón **🔊 es uno solo para toda la app** y vive fuera de las pantallas, como hijo directo de `<body>` (por eso es `position:fixed` con `z-index:5`: `.screen` es `z-index:1` y si no lo tapa). `updateSoundBtn()` lo muestra en las pantallas de `MUSIC_SCREENS` y lo esconde en el resto, y `go()` lo llama en cada cambio. Duplicarlo por pantalla obligaba a mantener tres botones en el mismo estado.
+- **El 🔊 silencia la música y nada más: los efectos de los botones no dependen de él.** Son cosas distintas — la música es ambiente y se apaga por gusto o por respeto al de al lado; el efecto es la respuesta al toque, y sin él los botones se sienten muertos. `sfx()` no mira `introMuted` a propósito: si algún día se quiere un silencio total, va un control aparte, no este.
+
 ## Base de datos (Supabase)
 
 Proyecto `mylele` · id `duvflmqbagnlhznuqjhr` · región São Paulo · `https://duvflmqbagnlhznuqjhr.supabase.co`

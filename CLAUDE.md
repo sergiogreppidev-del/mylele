@@ -41,6 +41,10 @@ Si agregás un archivo nuevo, sumalo a esta lista y a `index.html` respetando la
 `sergiogreppidev-del/mylele-editor` (privado) · https://mylele-editor-git-main-punto-gesell.vercel.app/
 Carpeta local: `../mylele-editor`. Es donde se crean y publican los niveles.
 
+> Ese repo tiene **su propio `CLAUDE.md`** con las trampas específicas del editor y su
+> modelo de dificultad. Si vas a tocar el editor, leelo: la mayoría de los errores que
+> tuvo vivían en lugares que desde acá no se ven.
+
 ## Flujo de trabajo
 
 - **Subir cambios:** doble clic en `subir-a-github.bat` (pull + push, dispara redeploy en Vercel).
@@ -79,9 +83,13 @@ Proyecto `mylele` · id `duvflmqbagnlhznuqjhr` · región São Paulo · `https:/
 > ⚠️ **`difficulty` NO son las tres grandes dificultades del juego.** Hay dos ejes distintos:
 >
 > - **Etapa** (Fácil · Intermedia · Difícil) — se distinguen por **cuánto vocabulario** se usa: cuántos acordes y cuántas notas entran en juego. Hoy **todo** el contenido está en la etapa Fácil, con los 4 acordes principales. Qué usan las otras dos todavía no está definido, así que **no existe en el código ni en la base**: cuando se defina, va a necesitar su propia columna.
-> - **Sub-nivel** (`difficulty`) — dentro de una etapa, con el **mismo** vocabulario, cambia **cuántos acordes por compás** toca el alumno: `'facil'` = uno por compás · `'dificil'` = hasta dos. En el editor se muestran como **"Fácil 1"** y **"Fácil 2"** justamente para no confundirlos con las etapas.
+> - **Sub-nivel** (`difficulty`) — dentro de una etapa, con el **mismo** vocabulario, cambia qué se le pide a la **mano izquierda**: cuántas formas distintas, cuáles, y cada cuánto pueden cambiar. En el editor se muestran como **"Fácil 1"** y **"Fácil 2"** justamente para no confundirlos con las etapas.
 >
-> Esa densidad es lo único que el editor le cambia a la IA al pedirle una canción (`reglasDensidad()` en `aiPrompt.ts` del repo del editor), y aplica **solo a la capa `chords`**: la música de fondo se genera igual en los dos.
+> **Una canción vive en UN sub-nivel, no en los dos.** El sub-nivel es la receta con la que se le pidió a la IA, no una variante que el juego elija en tiempo real: la progresión ya la da el orden de los niveles en el mapa.
+>
+> **"Acordes por compás" no sirve como eje de dificultad.** Se midieron los tres niveles de acordes publicados y los tres daban lo mismo: ~18 cambios de acorde por minuto, 2,9 dedos por cambio, los mismos 4 acordes. Lo único que variaba era cuántas veces se rasguea, y eso no le agrega trabajo a la mano que forma los acordes. Los topes reales están en `PERFILES` (`dificultad.ts` del editor) y los acordes permitidos se **calculan** de las digitaciones — los que menos dedos piden — así que la regla sigue valiendo cuando entren D o Em.
+
+> ⚠️ **`dificultadPara()` quedó vestigial y conviene sacarla.** `playableChart()` pide `difficulty === 'facil'` y, si no lo encuentra, cae a `jugables[0]`. Para una canción creada en Fácil 2 el `find` falla **siempre** y lo salva ese plan B — o sea que funciona de casualidad, y el plan B es justo el patrón "el primero de la lista" que ya nos mordió una vez. Como una canción vive en un solo sub-nivel y la consulta ya filtra por `published`, hay un único chart jugable por canción: alcanza con agarrar ese.
 - **`admins`** — quién puede editar contenido desde el editor. Se toca **solo desde el SQL editor** de Supabase.
 
 **Publicado vs. borrador:** un nivel puede tener varios charts, pero **solo uno publicado** por (`song_id`,`mode`) — lo garantiza el índice parcial `charts_one_published_per_mode`. La app de alumnos consulta con `charts!inner(...)&charts.published=is.true`, así que un chart en borrador no le llega nunca, y una canción sin chart publicado no aparece en el mapa de niveles. Para poner uno en vivo se usa la función `publish_chart(uuid)`, que baja el anterior y sube el nuevo en la misma transacción.

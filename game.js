@@ -315,12 +315,21 @@ function startRhythm(calibrate){
     // Con acompañamiento grabado el clic marca solo la cuenta de entrada y después se
     // calla: encima de una grabación real, el metrónomo tapa la música y molesta.
     const clickHasta = hasRecordedBacking() ? COUNT_IN : totalBeats;
-    for(let i=0;i<clickHasta;i++){ scheduleClick(startTime+i*beatDur, (i%4)===0); }
+    // El acento marca el inicio de cada compás DEL NIVEL, no cada 4 tiempos: en 3/4
+    // caía en cualquier lado y la canción se escuchaba como si estuviera corrida.
+    for(let i=0;i<clickHasta;i++){
+      const enCompas = ((i - COUNT_IN) % songBeatsPerBar + songBeatsPerBar) % songBeatsPerBar === 0;
+      scheduleClick(startTime+i*beatDur, enCompas);
+    }
+    // Solo UNA fuente de acompañamiento. Antes, un nivel con fondo escrito sonaba con
+    // el fondo Y el groove sintetizado a la vez: dos acompañamientos distintos
+    // encimados, con ritmos que no coinciden. Eso es lo que lo volvía irreconocible.
     if(hasRecordedBacking()){
-      scheduleRecordedBacking();        // 🎧 la grabación reemplaza a todo lo sintetizado
+      scheduleRecordedBacking();        // 🎧 la grabación manda
+    }else if(backingNotes && backingNotes.length){
+      scheduleBackingMelody();          // 🎶 el fondo escrito ES el acompañamiento
     }else{
-      scheduleBacking();                // 🎵 groove reggae sincronizado
-      scheduleBackingMelody();          // 🎶 melodía de fondo del nivel, si tiene
+      scheduleBacking();                // 🎵 sin fondo: el groove sintetizado de siempre
     }
     combo=0; bestCombo=0; bursts=[];
     startTrackLoop();

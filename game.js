@@ -254,11 +254,16 @@ function stopRecordedBacking(){
 
 function scheduleBackingMelody(){
   if(clickMuted || !backingNotes || !backingNotes.length) return;
+  // El fondo es polifónico (puede traer acordes): si varias notas arrancan juntas
+  // sus amplitudes se suman y satura, así que se reparte el volumen entre las voces.
+  const juntas={};
+  for(const n of backingNotes){ const k=Math.round((n.t||0)*1000); juntas[k]=(juntas[k]||0)+1; }
   for(const n of backingNotes){
     const f=pitchToFreq(n.pitch); if(f===null) continue;
+    const voces=juntas[Math.round((n.t||0)*1000)]||1;
     const at = startTime + (COUNT_IN + (n.t||0))*beatDur;
     const dur = Math.max(0.08, (n.dur||1)*beatDur*0.9);   // deja aire entre notas
-    playSynth(at, f, dur, 'sine', 0.2);
+    playSynth(at, f, dur, 'sine', 0.2/Math.sqrt(voces));
   }
 }
 

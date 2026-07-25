@@ -83,7 +83,9 @@ Proyecto `mylele` · id `duvflmqbagnlhznuqjhr` · región São Paulo · `https:/
 
 - Modo **`melody`** (tablatura): `{"t":0,"string":"C","fret":0,"dur":1}`. `string` ∈ G/C/E/A, `fret` ≥ 0. El editor debe pedir cuerda+traste, nunca el nombre de la nota — la app calcula la nota sola.
 - Modo **`chords`**: `{"t":0,"chord":"C","dur":1,"dir":"d"}`. `dir`: `"d"` abajo (default) | `"u"` arriba. `chord` debe existir en `chords`. La dirección de rasgueo **no se detecta por audio**, es guía visual.
-- Modo **`backing`** (acompañamiento): `{"t":0,"pitch":"G4","dur":0.5}`. Es la melodía que **reproduce la app**, no la toca el alumno — por eso guarda la **altura** (`pitch`, notación científica) y no la digitación, y puede ir en cualquier octava. La sintetiza `scheduleBackingMelody()` en `game.js`. Se importa desde el editor con ayuda de una IA; no se escribe a mano.
+- Modo **`backing`** (acompañamiento): `{"t":0,"pitch":"G4","dur":0.5}`. Es la música que **reproduce la app**, no la toca el alumno — por eso guarda la **altura** (`pitch`, notación científica) y no la digitación, y puede ir en cualquier octava. La sintetiza `scheduleBackingMelody()` en `game.js`. Se importa desde el editor con ayuda de una IA; no se escribe a mano.
+
+> El fondo es **polifónico**: varias notas con el mismo `t` suenan juntas (un acorde). No hace falta nada especial para reproducirlo —cada nota se programa por separado— pero sí se reparte el volumen entre las voces simultáneas, porque si no las amplitudes se suman y satura.
 
 **Seguridad actual:** RLS activo en las 4 tablas.
 - **SELECT público** en `songs`, `charts` y `chords` — es lo que usa la app de alumnos, sin login.

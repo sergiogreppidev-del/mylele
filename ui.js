@@ -11,15 +11,20 @@ let currentScreen='home', selectedMode='chords', micReady=false;
    al revés y por eso la música se colaba en pantallas que nadie se acordó de sumar.
    Así una pantalla nueva nace en silencio en vez de heredar la música por olvido.
 
-   Suena en la presentación, en «¿Qué practicamos?» y en el resultado. Se corta en
-   todo lo que use el micrófono (jugar, afinar, calibrar, práctica libre) y en el mapa
-   de niveles, que es la antesala del juego.
+   Suena en las pantallas donde se mira y se elige: presentación, «¿Qué practicamos?»,
+   mapa de niveles y resultado. Se corta en todo lo que use el micrófono para tocar
+   (jugar, afinar, calibrar, práctica libre).
 
-   Entre `home` y `mode` la música NO se reinicia: sigue de corrido, porque nunca se
-   llega a pausar. En el resultado, en cambio, arranca siempre desde el principio —
-   `stopIntro()` deja el tema en cero al salir, y a esa pantalla se entra después de
-   haber pasado por el mapa de niveles y el juego, que lo cortaron. */
-const MUSIC_SCREENS = ['home','mode','result'];
+   El mapa de niveles antes estaba mudo por ser la antesala del juego, y el silencio
+   de golpe se sentía como si la app se hubiera colgado. Se puede sacar de la lista
+   sin tocar nada más: no se le pide el micrófono al entrar (recién al elegir un
+   nivel, y esa llamada a `ensureMic('game')` ya corta la música antes de abrirlo).
+
+   Entre `home`, `mode` y `levels` la música NO se reinicia: sigue de corrido, porque
+   nunca se llega a pausar. En el resultado, en cambio, arranca siempre desde el
+   principio — `stopIntro()` deja el tema en cero al salir, y a esa pantalla se entra
+   después de pasar por el juego, que lo cortó. */
+const MUSIC_SCREENS = ['home','mode','levels','result'];
 const introAudio = document.getElementById('introAudio');
 let introMuted = false;
 try{ introMuted = localStorage.getItem('mylele_music')==='off'; }catch(e){}
@@ -90,13 +95,24 @@ function buildLevelSelector(){
   const list=levelsForMode(), prog=getProgress();
   cont.innerHTML='';
   if(!list.length){ cont.innerHTML='<div class="hint">Todavía no hay niveles de este tipo.</div>'; return; }
+  /* El primero abierto y sin terminar es «el que toca»: lleva la clase `next` y el
+     CSS le pone el aro que late. Se calcula acá y no en el CSS porque depende del
+     progreso guardado, no de la posición en la lista. */
+  const proximo = list.findIndex((s,i)=> prog[s.slug]===undefined && (i===0 || prog[list[i-1].slug]!==undefined));
   list.forEach((s,i)=>{
-    if(i) { const p=document.createElement('div'); p.className='path'; cont.appendChild(p); }
+    if(i) {
+      const p=document.createElement('div'); p.className='path';
+      p.style.animationDelay=(i*0.07)+'s';
+      cont.appendChild(p);
+    }
     const done = prog[s.slug]!==undefined;
     const unlocked = i===0 || prog[list[i-1].slug]!==undefined;
     const st = done?prog[s.slug]:0;
     const b=document.createElement('button');
-    b.className='node'+(done?' done':'')+(unlocked?'':' locked');
+    b.className='node'+(done?' done':'')+(unlocked?'':' locked')+(i===proximo?' next':'');
+    /* Entran de a uno, de arriba hacia abajo. El retraso va por nodo y no por CSS
+       (`nth-child`) porque la cantidad de niveles la decide la base de datos. */
+    b.style.animationDelay=(i*0.07)+'s';
     b.innerHTML='<span class="disc">'+(unlocked?(i+1):'🔒')+'</span>'
       +'<span class="stars">'+(done?'⭐'.repeat(st)+'☆'.repeat(3-st):'')+'</span>'
       +'<span class="nm">'+s.title.replace(/^Nivel \d+ · /,'')+'</span>';
@@ -146,6 +162,15 @@ function showResult(r){
   const stars=document.querySelectorAll('#resStars .res-star');
   stars.forEach(s=>s.classList.remove('on'));
   requestAnimationFrame(()=>{ stars.forEach((s,i)=>{ if(i<r.stars) s.classList.add('on'); }); });
+
+  /* Una nota por estrella, en el momento en que cada una aparece. Los 180 ms de
+     separación son los mismos `animation-delay` que tienen las estrellas en el CSS
+     (.res-star:nth-child(2)/(3)): si se cambian allá, hay que cambiarlos acá o el
+     sonido deja de caer junto con el brillo, que es todo el efecto.
+     Los 260 ms de arranque le dan tiempo a la pantalla a entrar. */
+  for(let i=0;i<r.stars;i++) setTimeout(()=>sfxStar(i), 260+i*180);
+  // Sin estrellas no hay fanfarria: sonaría a burla justo cuando no salió.
+  if(r.stars>0) setTimeout(()=>sfxFanfarria(r.stars), 260+r.stars*180+120);
 
   // Siguiente nivel: el que sigue en el mapa del modo actual, si está.
   const list=levelsForMode();

@@ -55,8 +55,41 @@ const SFX = {
                  sfxTono(880,    880,    0.12, 'triangle', 0.50, 0.06); },
   /* Nivel bloqueado: golpe sordo. Va más bajo que el resto a propósito — es onda
      cuadrada y grave, que a igual número suena bastante más fuerte y áspera. */
-  locked:  ()=>{ sfxTono(180, 120, 0.14, 'square', 0.30); }
+  locked:  ()=>{ sfxTono(180, 120, 0.14, 'square', 0.30); },
+  /* Elegir de una lista (modo de práctica, nivel del mapa). Se distingue del `tap`
+     por el brillo de arriba: la nota aguda en `sine` suena a campanita y le da el
+     aire de «marcaste una opción» en vez de «apretaste un botón». */
+  select:  ()=>{ sfxTono(740,  1050, 0.06, 'triangle', 0.50, 0);
+                 sfxTono(1480, 1480, 0.06, 'sine',     0.20, 0.035); }
 };
+
+/* Cada estrella del resultado tiene su nota, y suben: A5 · C#6 · E6 es un acorde
+   de La mayor desarmado, así que las tres juntas suenan a fanfarria aunque cada
+   una llegue por su lado. Va suelto y no en SFX porque necesita saber cuál de las
+   tres es — el oyente de botones llama sin argumentos. */
+const SFX_ESTRELLAS = [880, 1108.73, 1318.51];
+function sfxStar(i){
+  if(!sfxReady()) return;
+  const f = SFX_ESTRELLAS[i] || SFX_ESTRELLAS[0];
+  try{
+    sfxTono(f,     f * 1.5, 0.22, 'triangle', 0.50);
+    sfxTono(f * 2, f * 3,   0.16, 'sine',     0.16, 0.02);   // el destello de arriba
+  }catch(e){}
+}
+
+/* Fanfarria del resultado: Do · Mi · Sol · Do, más notas cuantas más estrellas.
+   No la silencia el 🔊 por la misma razón que los clics: es la respuesta a lo que
+   acabás de hacer, no música ambiente. */
+const SFX_FANFARRIA = [523.25, 659.25, 783.99, 1046.50];
+function sfxFanfarria(estrellas){
+  if(!sfxReady()) return;
+  const n = Math.max(2, Math.min(4, (estrellas || 0) + 1));
+  try{
+    for(let i = 0; i < n; i++){
+      sfxTono(SFX_FANFARRIA[i], SFX_FANFARRIA[i], 0.26, 'triangle', 0.42, i * 0.11);
+    }
+  }catch(e){}
+}
 
 /* El botón 🔊 NO silencia esto: apaga la música y nada más. Son cosas distintas —
    la música es ambiente y se apaga por gusto o por respeto al de al lado; el efecto
@@ -69,15 +102,22 @@ function sfx(nombre){
 /* Un solo oyente para toda la app, en vez de cablear botón por botón: los nodos del
    mapa de niveles se crean y destruyen cada vez que se arma la pantalla, y con
    listeners individuales habría que acordarse de sumarlos ahí también. */
+/* El orden importa: se queda con la PRIMERA que coincida. Por eso `.node.locked`
+   va antes que `.node`, si no el nivel bloqueado sonaría a selección válida. */
 const SFX_POR_SELECTOR = [
   ['#startBtn, #playBtn, #resNext, #resRetry, #calibBtn', 'confirm'],
   ['.back',                                               'back'   ],  // los «←», que llevan esa clase
-  ['.node.locked',                                        'locked' ]
+  ['.node.locked',                                        'locked' ],
+  ['.mode, .node, .string',                               'select' ]
 ];
 
+/* `.string` (el afinador) va aparte porque son `<div>`, no `<button>`: se tocan
+   igual y tienen que sonar igual. fx.js usa este mismo selector para las chispas. */
+const SFX_TOCABLE = 'button, .string';
+
 document.addEventListener('pointerdown', e=>{
-  const b = e.target.closest && e.target.closest('button');
-  if(!b) return;
+  const b = e.target.closest && e.target.closest(SFX_TOCABLE);
+  if(!b || b.disabled) return;
   let voz = 'tap';
   for(const [sel, v] of SFX_POR_SELECTOR){ if(b.matches(sel)){ voz = v; break; } }
   sfx(voz);

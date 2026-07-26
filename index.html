@@ -10,6 +10,9 @@
 <body>
 
 <div class="bg"></div><div class="wave"></div>
+<!-- Notas musicales subiendo de fondo. Las crea fx.js: van con posición y
+     velocidad al azar, y eso el CSS solo no lo puede repartir. -->
+<div class="floaters" id="floaters" aria-hidden="true"></div>
 
 <!-- ══════════ INICIO ══════════ -->
 <section class="screen on home" id="screen-home">
@@ -52,15 +55,21 @@
   </div>
   <h1 class="logo">My<span>Lele</span></h1>
   <p class="tagline">Aprendé ukelele jugando</p>
-  <button class="cbtn sun play-big" id="startBtn">▶ JUGAR</button>
+  <!-- El envoltorio existe para que el latido no viva en el botón: una animación
+       de CSS le gana al `transform` que lo hunde al presionarlo, así que si el
+       botón late, deja de hundirse. Late el envoltorio, se hunde el botón. -->
+  <div class="play-wrap"><button class="cbtn sun play-big" id="startBtn">▶ JUGAR</button></div>
   <div class="tools">
     <button class="cbtn sky sm" data-go="tuner">🎵 Afinar</button>
     <button class="cbtn melon sm" data-go="calib">🎯 Calibrar latencia</button>
   </div>
   <p class="tip">🎧 Usá auriculares con cable para que el sonido no moleste al micrófono</p>
   <!-- El navegador no deja que un audio arranque sin que el usuario toque algo:
-       por eso empieza en el primer toque, no al cargar la página. -->
-  <audio id="introAudio" src="intro.mp3" preload="auto"></audio>
+       por eso empieza en el primer toque, no al cargar la página.
+       `loop`: el tema dura ~27 s y las pantallas donde suena (inicio, elegir modo,
+       mapa de niveles, resultado) se miran más tiempo que eso. Sin repetir, la app
+       se quedaba muda a la media docena de segundos de estar eligiendo un nivel. -->
+  <audio id="introAudio" src="intro.mp3" preload="auto" loop></audio>
 </section>
 
 <!-- ══════════ ELEGIR MODO ══════════ -->
@@ -211,5 +220,6 @@
 <script src="game.js"></script>
 <script src="ui.js"></script>
 <script src="sfx.js"></script>
+<script src="fx.js"></script>
 </body>
 </html>

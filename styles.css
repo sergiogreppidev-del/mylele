@@ -268,3 +268,166 @@ textarea{width:100%;height:96px;background:#2A1E48;color:#7FE8D8;border:3px soli
 
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
 .string.active{background:var(--cream)}
+
+/* ═══════════════════════════════════════════════════════════
+   JUGO · La capa que hace que la app se sienta viva
+   ═══════════════════════════════════════════════════════════
+   Todo acá es decorativo: si se borra este bloque entero, la app
+   sigue funcionando igual. Son animaciones CSS (no JavaScript
+   dibujando cuadro a cuadro), así que las mueve la placa de video
+   del teléfono y no cuestan batería ni trabas.
+
+   Regla que se repite abajo y conviene entender una vez:
+   una animación de CSS le gana a cualquier `transform` normal
+   mientras corre. Por eso NUNCA se anima el `transform` de un
+   botón — se le anima el brillo, un aro alrededor, o se envuelve
+   en un `<div>` que late por él. Si se anima el botón directo, se
+   pierde el hundido al presionarlo, que es la firma de la app.
+   =========================================================== */
+
+/* ---- Notas flotando de fondo (las crea fx.js) ----
+   Van al mismo z-index que el fondo: las pantallas no tienen color
+   propio, así que se ven a través de ellas en toda la app. */
+.floaters{position:fixed;inset:0;z-index:0;pointer-events:none;overflow:hidden}
+.floaters b{position:absolute;bottom:-10vh;color:#fff;font-weight:400;opacity:0;
+  text-shadow:0 2px 0 rgba(58,42,99,.16);animation:floatUp linear infinite}
+@keyframes floatUp{
+  0%  {opacity:0;  transform:translate(0,0)        rotate(-14deg) scale(.8)}
+  14% {opacity:.5}
+  86% {opacity:.42}
+  100%{opacity:0;  transform:translate(26px,-120vh) rotate(16deg) scale(1.06)}
+}
+
+/* ---- Chispas al tocar cualquier botón (las crea fx.js) ----
+   z-index 9: por encima del botón de silencio (5) y de las pantallas (1),
+   así la chispa nunca queda tapada por lo que acabás de tocar. */
+.spark{position:fixed;z-index:9;pointer-events:none;width:9px;height:9px;border-radius:50%;
+  margin:-4.5px 0 0 -4.5px;animation:sparkOut .42s ease-out forwards}
+@keyframes sparkOut{
+  0%  {opacity:1;transform:translate(0,0) scale(1)}
+  100%{opacity:0;transform:translate(var(--dx),var(--dy)) scale(.15)}
+}
+
+/* ---- Brillo de caramelo en los botones ----
+   El reflejo de arriba es lo que los hace ver de plástico brillante
+   en vez de rectángulos de color. */
+.cbtn{position:relative;overflow:hidden}
+.cbtn::before{content:'';position:absolute;left:9%;right:9%;top:4px;height:36%;border-radius:100px;
+  background:linear-gradient(rgba(255,255,255,.5),rgba(255,255,255,0));pointer-events:none}
+.cbtn.ghost::before{opacity:.5}
+
+/* Destello que cruza el botón grande de JUGAR cada tantos segundos. */
+.play-big::after{content:'';position:absolute;top:-60%;width:38%;height:220%;left:-50%;
+  background:linear-gradient(90deg,transparent,rgba(255,255,255,.6),transparent);
+  transform:rotate(18deg);pointer-events:none;animation:shine 3.8s ease-in-out infinite}
+@keyframes shine{0%{left:-50%}45%,100%{left:130%}}
+
+/* El latido va en el envoltorio, no en el botón: ver la regla de arriba. */
+.play-wrap{display:inline-flex;animation:beat 2.1s ease-in-out infinite}
+@keyframes beat{0%,100%{transform:scale(1)}50%{transform:scale(1.05)}}
+
+/* ---- Movimientos base, reusados por varias pantallas ---- */
+@keyframes riseIn{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:none}}
+@keyframes popIn {from{opacity:0;transform:scale(.55)}70%{opacity:1;transform:scale(1.09)}to{opacity:1;transform:scale(1)}}
+@keyframes bump  {0%{transform:scale(1)}35%{transform:scale(1.24)}100%{transform:scale(1)}}
+@keyframes wiggle{0%,88%,100%{transform:rotate(0)}92%{transform:rotate(-9deg)}96%{transform:rotate(9deg)}}
+@keyframes twinkle{0%,100%{opacity:0;transform:scale(.3) rotate(0)}50%{opacity:1;transform:scale(1) rotate(100deg)}}
+
+/* Un número que cambió: pega un salto para que se note.
+   Lo dispara fxBump() desde JavaScript. */
+.bump{animation:bump .32s ease-out}
+
+/* ---- Entrada de la pantalla de inicio ----
+   Las animaciones se reinician solas cada vez que se vuelve al inicio,
+   porque la pantalla pasa de `display:none` a visible. No hace falta
+   JavaScript para relanzarlas.
+
+   `backwards` = mientras espera su turno, el elemento ya está en el
+   estado inicial (invisible). Sin eso, todos aparecen de golpe y recién
+   después se acomodan. */
+.home .uke      {position:relative;animation:riseIn .5s cubic-bezier(.34,1.56,.64,1) backwards,
+                                            sway 3.4s ease-in-out .5s infinite}
+.home .logo     {animation:logoIn .55s cubic-bezier(.34,1.56,.64,1) .06s backwards,
+                           logoWob 4.5s ease-in-out 1.2s infinite}
+.home .tagline  {animation:tagIn  .45s ease-out .18s backwards}
+.home .play-wrap{animation:popIn  .5s cubic-bezier(.34,1.56,.64,1) .3s backwards,
+                           beat   2.1s ease-in-out 1.1s infinite}
+.home .tools    {animation:riseIn .45s cubic-bezier(.34,1.56,.64,1) .42s backwards}
+.home .tip      {animation:riseIn .45s ease-out .52s backwards}
+
+/* El logo y la etiqueta viven rotados: sus animaciones tienen que repetir
+   esa rotación en cada paso o se enderezan al animarse. */
+@keyframes logoIn {from{opacity:0;transform:rotate(-3deg) scale(.5)}
+                   70%{opacity:1;transform:rotate(-3deg) scale(1.12)}
+                   to {opacity:1;transform:rotate(-3deg) scale(1)}}
+@keyframes logoWob{0%,100%{transform:rotate(-3deg) scale(1)}50%{transform:rotate(-1.2deg) scale(1.035)}}
+@keyframes tagIn  {from{opacity:0;transform:rotate(-1.5deg) translateY(14px)}
+                   to {opacity:1;transform:rotate(-1.5deg) translateY(0)}}
+
+/* Destellitos al costado del ukelele. */
+.home .uke::before,.home .uke::after{content:'✦';position:absolute;color:#fff;line-height:1;
+  text-shadow:0 0 12px rgba(255,255,255,.95);animation:twinkle 2.4s ease-in-out infinite}
+.home .uke::before{left:-26px;top:12%;font-size:21px}
+.home .uke::after {right:-24px;top:54%;font-size:15px;animation-delay:1.2s}
+
+/* ---- Títulos de las pantallas internas ---- */
+.screen.on .top h2{animation:riseIn .4s cubic-bezier(.34,1.56,.64,1) .05s backwards}
+.screen.on .top .back{animation:popIn .38s cubic-bezier(.34,1.56,.64,1) backwards}
+
+/* ---- Elegir modo: las tarjetas caen escalonadas y el ícono cabecea ---- */
+.modes .mode{animation:riseIn .45s cubic-bezier(.34,1.56,.64,1) backwards}
+.modes .mode:nth-child(1){animation-delay:.06s}
+.modes .mode:nth-child(2){animation-delay:.14s}
+.modes .mode:nth-child(3){animation-delay:.22s}
+.mode .ico{position:relative;overflow:hidden;animation:wiggle 3.4s ease-in-out infinite}
+.mode.c .ico{animation-delay:.5s} .mode.p .ico{animation-delay:1s}
+.mode .ico::before{content:'';position:absolute;left:12%;right:12%;top:3px;height:38%;border-radius:100px;
+  background:linear-gradient(rgba(255,255,255,.55),rgba(255,255,255,0));pointer-events:none}
+
+/* ---- Mapa de niveles ----
+   El escalonado lo pone ui.js con un `animation-delay` por nodo: la cantidad
+   de niveles cambia según lo que haya en la base, así que no se puede fijar
+   acá con `nth-child`. */
+.node{animation:popIn .42s cubic-bezier(.34,1.56,.64,1) backwards}
+.node .disc{position:relative;overflow:visible}
+.node .disc::before{content:'';position:absolute;left:16%;right:16%;top:5px;height:34%;border-radius:100px;
+  background:linear-gradient(rgba(255,255,255,.5),rgba(255,255,255,0));pointer-events:none}
+
+/* El nivel que toca jugar late con un aro, como en los juegos de mapa.
+   El aro es un pseudo-elemento y no el disco: así el disco conserva el
+   hundido al presionarlo (ver la regla del principio del bloque). */
+.node.next .disc::after{content:'';position:absolute;inset:-9px;border-radius:50%;
+  border:3px solid #fff;pointer-events:none;animation:ring 1.6s ease-out infinite}
+@keyframes ring{0%{transform:scale(.92);opacity:.9}100%{transform:scale(1.5);opacity:0}}
+.node.done .stars{animation:starGlow 2.6s ease-in-out infinite}
+@keyframes starGlow{0%,100%{filter:none}50%{filter:drop-shadow(0 0 6px rgba(255,196,46,.9))}}
+.path{animation:riseIn .3s ease-out backwards}
+
+/* El mapa también muestra el 🔊 arriba a la derecha: hay que dejarle el hueco,
+   igual que en «¿Qué practicamos?». */
+#screen-levels .top{padding-right:52px}
+
+/* ---- Juego: el marcador y el cartel de acierto reaccionan ---- */
+.chips .chip{animation:riseIn .4s cubic-bezier(.34,1.56,.64,1) backwards}
+.chips .chip:nth-child(2){animation-delay:.07s}
+.chips .chip:nth-child(3){animation-delay:.14s}
+.track{animation:popIn .45s cubic-bezier(.34,1.56,.64,1) backwards}
+
+/* ---- Resultado: rayos girando detrás del cartel ----
+   z-index -1 queda por detrás del contenido pero dentro de la pantalla,
+   porque `.screen` ya arma su propia capa (tiene z-index:1). */
+.screen.result::before{content:'';position:absolute;top:26%;left:50%;width:170vmax;height:170vmax;
+  transform:translate(-50%,-50%);z-index:-1;pointer-events:none;
+  background:repeating-conic-gradient(from 0deg at 50% 50%, rgba(255,255,255,.22) 0deg 8deg, transparent 8deg 16deg);
+  animation:spin 26s linear infinite}
+.screen.result.on .res-title{animation:popIn .5s cubic-bezier(.34,1.56,.64,1) backwards}
+.screen.result.on .res-level{animation:riseIn .4s ease-out .12s backwards}
+.screen.result.on .res-acc  {animation:popIn .45s cubic-bezier(.34,1.56,.64,1) .55s backwards}
+.screen.result.on .res-actions{animation:riseIn .45s ease-out .8s backwards}
+
+/* ---- Afinador y práctica libre: que la pantalla no llegue de golpe ---- */
+#screen-tuner.on .tuner-note{animation:popIn .45s cubic-bezier(.34,1.56,.64,1) .05s backwards}
+#screen-tuner.on .meter     {animation:riseIn .4s ease-out .14s backwards}
+#screen-tuner.on .strings   {animation:riseIn .4s ease-out .22s backwards}
+#screen-practice.on .tgt    {animation:popIn .45s cubic-bezier(.34,1.56,.64,1) .05s backwards}
+#screen-calib.on .calib-dot {animation:popIn .45s cubic-bezier(.34,1.56,.64,1) .05s backwards}

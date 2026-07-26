@@ -13,7 +13,7 @@ App web (futuro: app nativa Android) para **aprender ukelele jugando**. Escucha 
 Sitio estático puro: **sin build, sin dependencias, sin `npm install`**. Los `.js` son scripts clásicos (no `import`/`export`) que comparten alcance global y se cargan en un **orden fijo** en `index.html`:
 
 ```
-config.js → content.js → audio-engine.js → core.js → tuner.js → chords.js → game.js → ui.js → sfx.js
+config.js → content.js → audio-engine.js → core.js → tuner.js → chords.js → game.js → ui.js → sfx.js → fx.js
 ```
 
 | Archivo | Responsabilidad |
@@ -30,6 +30,7 @@ config.js → content.js → audio-engine.js → core.js → tuner.js → chords
 | `game.js` | Pista del juego, ritmo, metrónomo, calibración, acompañamiento |
 | `ui.js` | Router de pantallas, permiso de micrófono, mapa de niveles |
 | `sfx.js` | Efectos de sonido de los botones (sintetizados, contexto de audio propio) |
+| `fx.js` | Efectos visuales de adorno: notas de fondo, chispas al tocar, saltito de los números |
 
 Si agregás un archivo nuevo, sumalo a esta lista y a `index.html` respetando las dependencias de scope global.
 
@@ -55,14 +56,18 @@ Carpeta local: `../mylele-editor`. Es donde se crean y publican los niveles.
 ## Decisiones técnicas ya validadas (no revisar sin motivo)
 
 - **Detección restringida:** la app siempre sabe qué debería tocar el usuario, así que *verifica* contra 2–4 candidatos en vez de transcribir audio libre. Es el principio central de todo el motor de audio (web y, a futuro, Android).
-- **Plantilla del acorde G** (`config.js`): exige su tercera (**B**) y baja el peso del **D** — sin esto el "D fantasma" del ukelele hacía que C se detectara como G (subió de 10/39 a 38/39 aciertos con datos reales). No tocar sin volver a medir contra grabaciones reales.
+- **Plantillas de acordes: la plantilla NO refleja la teoría musical, refleja lo que el instrumento realmente produce.** Es la lección que dieron las dos calibraciones que hay, y es contraintuitiva: en las dos, la fundamental pesa *menos* que otra nota.
+  - **G** `{1.0, 1.6, 0.5}` — exige su tercera (**B**) y baja el peso del **D**. Sin esto el "D fantasma" del sol reentrante hacía que C se detectara como G. Subió de 10/39 a 38/39 con datos reales.
+  - **F** `{0.8, 1.2, 0.7}` — el F se digita `[2,0,1,0]` y suena A4-C4-**F4**-A4: el **la en dos cuerdas** y el fa en una sola, la más floja. Am comparte ese la duplicado y el do, así que se llevaba las detecciones. Subirle el peso al fa (la fundamental) lo **empeora** — cae a 24,6%. Medido en julio 2026 contra el banco de 2.247 clips del repo `mylele-android`: 56% → 96% en limpio, 50% → 85% degradado, sin mover a los otros tres acordes.
+
+  No tocar ninguna sin volver a correr el banco de pruebas (`mylele-android/testbank`).
 - **Afinador por cuerda, no cromático:** se fija la cuerda objetivo (G/C/E/A) y solo da verde en su nota correcta.
 - **Latencia:** se calibra golpeando contra el metrónomo (mediana robusta). En Android puede dar ~300 ms y es normal.
 - **Auriculares con cable, sin micrófono, obligatorios.** Los Bluetooth con mic fuerzan el micrófono del auricular y arruinan la detección. No hay fix por software.
 - **Ventanas de acierto anchas** (±130 ms justo / ±240 ms cerca): sensación arcade, no exigencia de músico profesional.
 - **Afinar antes de practicar acordes** — con una cuerda desafinada, la detección de acordes falla y parece un bug del algoritmo.
 - El progreso se guarda en `localStorage` (`mylele_progress`), así que en ventana privada arranca de cero.
-- **La música de inicio suena en la presentación, en «¿Qué practicamos?» y en el resultado.** `MUSIC_SCREENS` (`ui.js`) lista las pantallas que la dejan sonar — es lista blanca, no negra: antes se enumeraban las que la cortaban y la música se colaba en las que nadie se acordó de sumar. Una pantalla nueva nace en silencio. Entre presentación y «¿Qué practicamos?» sigue de corrido; al resultado entra siempre desde el principio, porque `stopIntro()` deja el tema en cero al salir.
+- **La música de inicio suena en la presentación, en «¿Qué practicamos?», en el mapa de niveles y en el resultado.** `MUSIC_SCREENS` (`ui.js`) lista las pantallas que la dejan sonar — es lista blanca, no negra: antes se enumeraban las que la cortaban y la música se colaba en las que nadie se acordó de sumar. Una pantalla nueva nace en silencio. Entre las tres primeras sigue de corrido; al resultado entra siempre desde el principio, porque `stopIntro()` deja el tema en cero al salir. El `<audio>` va con `loop`: el tema dura ~27 s y sin repetir la app se quedaba muda mientras se elige un nivel.
 
 > `ensureMic(destino)` recibe la pantalla a la que se va y corta la música **antes** de abrir el micrófono, no después: el cartel de permiso puede tardar y mientras tanto el micrófono ya escucha el parlante. Corta solo si el destino es mudo — sin ese detalle, «JUGAR» reiniciaba el tema al entrar a «¿Qué practicamos?». Si sumás una pantalla a `MUSIC_SCREENS`, revisá que su llamada a `ensureMic()` pase el destino correcto.
 
@@ -77,7 +82,7 @@ Proyecto `mylele` · id `duvflmqbagnlhznuqjhr` · región São Paulo · `https:/
 
 > ⚠️ `content.js` carga **todos** los acordes de la tabla, no una lista fija. Si se vuelve a cablear (`['C','Am','F','G']`), los acordes nuevos que se carguen desde el editor se ignoran y los niveles que los usen no se dibujan ni se detectan.
 >
-> `weights[]` lleva un peso por cada `pitch_classes[]`, en la misma posición — por eso un acorde puede ser tríada (3 notas) o séptima (4). Los pesos del **G** (`{1.0,1.6,0.5}`) son la calibración validada con grabaciones reales: no tocarlos sin volver a medir.
+> `weights[]` lleva un peso por cada `pitch_classes[]`, en la misma posición — por eso un acorde puede ser tríada (3 notas) o séptima (4). Los pesos del **G** (`{1.0,1.6,0.5}`) y del **F** (`{0.8,1.2,0.7}`) son calibraciones validadas contra grabaciones reales: no tocarlos sin volver a medir. `config.js` tiene una copia de respaldo que se usa solo si la base no responde — si se cambian acá, hay que cambiarla también allá.
 - **`songs`** — niveles: `id`, `slug`, `title`, `artist`, `level`, `bpm`, `time_sig`, `tuning`, `audio_path`, `audio_offset_s`, `is_free`, `duration_s`, `draft` (jsonb).
 
 > Las **columnas de `songs` son lo que está en vivo**: la app de alumnos las lee tal cual, sin filtrar nada. Los cambios sin publicar de la ficha viven en `draft` y se vuelcan a las columnas recién al llamar a `publish_song_meta(uuid)`. Por eso **la app de alumnos no necesita saber que existe el borrador** — nunca selecciona esa columna.
@@ -145,6 +150,7 @@ Mantener esta paleta y tipografía en cualquier pantalla o herramienta nueva (in
 | `MyLele_Estado_del_Proyecto.md` | Traspaso técnico completo: arquitectura, esquema de datos, decisiones validadas |
 | `MyLele_Blueprint_Producto.md` | Estrategia de producto, UX, currículo pedagógico, roadmap por fases |
 | `MyLele_Spec_Motor_Audio.md` | Plan del motor de audio nativo en C++ para Android (el salto post-web) |
+| `MyLele_Plan_Android.md` | Plan de conversión a Android nativo por fases: análisis del código actual, desglose de la latencia y orden de ejecución |
 | `MyLele_Editor_de_Niveles.md` | Brief de la app de autoría de contenido — construida en el repo hermano `mylele-editor` |
 
 ## Qué falta (próximos pasos conocidos)

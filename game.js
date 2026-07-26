@@ -425,7 +425,9 @@ function registerHit(t){
       if(a<=PERFECT_S){ cls='ok'; txt='¡Justo! 🎯'; rScore.perfect++; }
       else if(a<=GOOD_S){ cls='ok'; txt=(off<0?'Cerca (un toque temprano)':'Cerca (un toque tarde)'); rScore.good++; }
       else { cls='off'; txt=(off<0?'Temprano ⏪':'Tarde ⏩'); rScore.miss++; }
-      document.getElementById('rhythmFb').innerHTML='<b>'+txt+'</b>';
+      const fb=document.getElementById('rhythmFb');
+      fb.innerHTML='<b>'+txt+'</b>';
+      if(typeof fxBump==='function') fxBump(fb);   // el cartel salta con cada acierto
       updateRScore();
       feedbackBlip(cls==='ok');
       noteState[bi] = (cls==='ok') ? 'good' : 'bad';
@@ -664,10 +666,21 @@ function rhythmTick(){
   requestAnimationFrame(rhythmTick);
 }
 
+/* Escribe un contador y, si el número cambió, le hace pegar un saltito.
+   Solo el que cambió: si saltan los tres a la vez no se entiende cuál sumó, que es
+   justo lo único que el saltito tiene que contar. Salta la ficha entera (el padre),
+   no el número suelto, porque es lo que se ve de reojo mientras se toca.
+   `fxBump` vive en fx.js, que es puro adorno: si no cargó, esto sigue andando. */
+function setRScoreNum(id, v){
+  const el=document.getElementById(id); if(!el) return;
+  if(el.textContent===String(v)) return;
+  el.textContent=v;
+  if(typeof fxBump==='function') fxBump(el.parentElement||el);
+}
 function updateRScore(){
-  document.getElementById('rPerfect').textContent=rScore.perfect;
-  document.getElementById('rGood').textContent=rScore.good;
-  document.getElementById('rMiss').textContent=rScore.miss;
+  setRScoreNum('rPerfect', rScore.perfect);
+  setRScoreNum('rGood',    rScore.good);
+  setRScoreNum('rMiss',    rScore.miss);
 }
 
 // --- log de desfases ---

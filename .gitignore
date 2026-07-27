@@ -5,3 +5,8 @@
 Thumbs.db
 desktop.ini
 .DS_Store
+
+# Lo que genera tools/armar.py: se rehace con `python armar.py` y no es fuente.
+tools/__pycache__/
+tools/salida.json
+tools/cargar.sql

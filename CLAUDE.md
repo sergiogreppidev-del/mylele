@@ -112,6 +112,10 @@ Proyecto `mylele` · id `duvflmqbagnlhznuqjhr` · región São Paulo · `https:/
 
 - Modo **`melody`** (tablatura): `{"t":0,"string":"C","fret":0,"dur":1}`. `string` ∈ G/C/E/A, `fret` ≥ 0. El editor debe pedir cuerda+traste, nunca el nombre de la nota — la app calcula la nota sola.
 - Modo **`chords`**: `{"t":0,"chord":"C","dur":1,"dir":"d"}`. `dir`: `"d"` abajo (default) | `"u"` arriba. `chord` debe existir en `chords`. La dirección de rasgueo **no se detecta por audio**, es guía visual.
+
+> ⚠️ **Cada evento es UN RASGUEO y `dur` es cuánto lo dejás sonar.** `{"chord":"C","dur":2}` es un golpe que dura dos tiempos, **no** dos golpes de uno. Suena obvio escrito así, pero el contenido se cargó con la lectura contraria y se escuchaba: el final de Estrellita pide un Do sostenido y el juego mostraba dos Do seguidos, así que había que cortar el acorde justo donde la canción respira.
+>
+> De ahí sale la regla de escritura: **el rasgueo sigue el ritmo de la melodía.** Donde la melodía se mueve, se rasguea; donde sostiene, el acorde se sostiene con ella. Los silencios valen: si la canción respira, ahí no va ningún golpe. Lo que limita la etapa Fácil es cada cuánto **cambia** el acorde y que todos los golpes vayan hacia abajo — no cuántos golpes hay, porque rasguear más no le agrega trabajo a la mano que forma el acorde.
 - Modo **`backing`** (acompañamiento): `{"t":0,"pitch":"G4","dur":0.5}`. Es la música que **reproduce la app**, no la toca el alumno — por eso guarda la **altura** (`pitch`, notación científica) y no la digitación, y puede ir en cualquier octava. La sintetiza `scheduleBackingMelody()` en `game.js`. Se importa desde el editor con ayuda de una IA; no se escribe a mano.
 
 > El fondo es **polifónico** y tiene **voces**: cada nota lleva `v` con su rol — `'lead'` (la melodía), `'bass'` (el bajo) o `'acomp'` (el relleno). Sin esto todas sonaban con la misma onda y el mismo volumen, y la melodía quedaba enterrada entre los acordes: la canción no se reconocía aunque las notas fueran correctas. `playVoice()` en `game.js` le da a cada rol su timbre y su lugar en la mezcla, y solo el relleno reparte volumen entre notas simultáneas.

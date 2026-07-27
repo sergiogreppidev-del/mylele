@@ -349,4 +349,100 @@ CANCIONES = {
             '[F3,A3]/1 C4/1 [F3,A3]/2 | F3/.5 A3/.5 C4/1 [E3,G3]/2 |'
             '[C3,E3]/1 [D3,G3]/1 [D3,G3]/1 [C3,E3]/1 | [D3,G3]/2 [C3,E3,G3]/2',
     },
+
+    # =====================================================================
+    # LOS TALLERES · el recorrido de entrada de cada acorde
+    #
+    # No son canciones: son ejercicios. Pero se escriben con las MISMAS cuatro
+    # capas, porque un ejercicio sin fondo suena a metronomo y eso ya se probo que
+    # no engancha. El alumno tiene que sentir que toca CON algo desde el primer
+    # rasgueo, aunque lo que toque sea un solo acorde.
+    #
+    # El taller del primer acorde tiene DOS pasos y no tres: «cambios» no existe
+    # cuando todavia no hay con que alternar. Un paso que no ensena nada es peor
+    # que un recorrido irregular — el alumno no cuenta los pasos, siente si avanza.
+    # =====================================================================
+
+    # --- Taller de DO -----------------------------------------------------
+    # El primer acorde de todos. Un dedo, y el mas facil que existe en ukelele.
+    'taller-c-aislado': {
+        'bpb': 4, 'compases': 4,
+        # Un rasgueo por compas y a esperar. Lo unico que se pide es formar la mano
+        # y que suene limpio; el ritmo viene despues.
+        'acordes': 'C/4 | C/4 | C/4 | C/4',
+        'melodia': 'E4/2 G4/2 | C5/4 | G4/2 E4/2 | C4/4',
+        'bajo': 'C3/2 G2/2 | C3/2 E3/2 | G2/2 C3/2 | C3/4',
+        'acomp':
+            'r/1 [E3,G3]/1 [E3,G3]/1 C4/1 | [C4,E4]/2 [E3,G3]/2 |'
+            'E3/.5 G3/.5 C4/1 [E3,G3]/2 | [C3,E3,G3]/4',
+    },
+    'taller-c-rasgueo': {
+        'bpb': 4, 'compases': 8,
+        # Ahora si el ritmo. Las duraciones cambian a proposito: si todos los golpes
+        # duraran lo mismo seria un metronomo, y ademas no se aprende a sostener.
+        'acordes':
+            'C/1 C/1 C/2 | C/1 C/1 C/2 | C/1 C/1 C/1 C/1 | C/4 |'
+            'C/1 C/1 C/2 | C/1 C/1 C/2 | C/1 C/1 C/1 C/1 | C/4',
+        'melodia':
+            'E4/1 G4/1 C5/2 | G4/1 E4/1 C4/2 | E4/1 G4/1 C5/1 G4/1 | E4/4 |'
+            'G4/1 C5/1 E5/2 | C5/1 G4/1 E4/2 | C4/1 E4/1 G4/1 C5/1 | C5/4',
+        'bajo':
+            'C3/2 G2/2 | C3/1 E3/1 G2/2 | C3/1 G2/1 E3/1 G2/1 | C3/4 |'
+            'C3/2 E3/2 | G2/2 C3/2 | C3/1 E3/1 G2/1 E3/1 | C3/4',
+        'acomp':
+            'E3/1 G3/1 [C4,E4]/2 | G3/.5 E3/.5 C4/1 [E3,G3]/2 |'
+            'E3/1 G3/1 C4/1 G3/1 | [C3,E3,G3]/4 |'
+            'C4/1 E4/1 [G3,C4]/2 | E4/.5 C4/.5 G3/1 [E3,G3]/2 |'
+            'E3/1 G3/1 C4/1 E4/1 | [C3,E3,G3]/4',
+    },
+
+    # --- Taller de LA MENOR -----------------------------------------------
+    # Tambien de un dedo, y comparte dos notas con el Do: por eso va segundo, y por
+    # eso el paso de cambios entre los dos ya tiene sentido.
+    'taller-am-aislado': {
+        'bpb': 4, 'compases': 4,
+        'acordes': 'Am/4 | Am/4 | Am/4 | Am/4',
+        'melodia': 'A4/2 C5/2 | E5/4 | C5/2 A4/2 | A4/4',
+        'bajo': 'A2/2 E3/2 | A2/2 C3/2 | E3/2 A2/2 | A2/4',
+        'acomp':
+            'r/1 [A3,C4]/1 [A3,C4]/1 E4/1 | [C4,E4]/2 [A3,C4]/2 |'
+            'A3/.5 C4/.5 E4/1 [A3,C4]/2 | [A2,C3,E3]/4',
+    },
+    'taller-am-rasgueo': {
+        'bpb': 4, 'compases': 8,
+        'acordes':
+            'Am/1 Am/1 Am/2 | Am/1 Am/1 Am/2 | Am/1 Am/1 Am/1 Am/1 | Am/4 |'
+            'Am/1 Am/1 Am/2 | Am/1 Am/1 Am/2 | Am/1 Am/1 Am/1 Am/1 | Am/4',
+        'melodia':
+            'A4/1 C5/1 E5/2 | C5/1 A4/1 E4/2 | A4/1 C5/1 E5/1 C5/1 | A4/4 |'
+            'E4/1 A4/1 C5/2 | A4/1 E4/1 C4/2 | E4/1 A4/1 C5/1 E5/1 | A4/4',
+        'bajo':
+            'A2/2 E3/2 | A2/1 C3/1 E3/2 | A2/1 E3/1 C3/1 E3/1 | A2/4 |'
+            'A2/2 C3/2 | E3/2 A2/2 | A2/1 C3/1 E3/1 C3/1 | A2/4',
+        'acomp':
+            'A3/1 C4/1 [E4,A4]/2 | C4/.5 A3/.5 E3/1 [A3,C4]/2 |'
+            'A3/1 C4/1 E4/1 C4/1 | [A2,C3,E3]/4 |'
+            'E4/1 A4/1 [C4,E4]/2 | A4/.5 E4/.5 C4/1 [A3,C4]/2 |'
+            'A3/1 C4/1 E4/1 A4/1 | [A2,C3,E3]/4',
+    },
+    'taller-am-cambios': {
+        'bpb': 4, 'compases': 8,
+        # El paso que de verdad cuesta: no es formar los acordes, es LLEGAR a tiempo
+        # de uno al otro. Por eso cada uno dura un compas entero y el cambio cae
+        # siempre en el tiempo fuerte, que es donde la mano lo puede anticipar.
+        'acordes':
+            'C/1 C/1 C/2 | Am/1 Am/1 Am/2 | C/1 C/1 C/2 | Am/4 |'
+            'C/1 C/1 C/2 | Am/1 Am/1 Am/2 | C/1 Am/1 C/2 | C/4',
+        'melodia':
+            'E4/1 G4/1 C5/2 | E4/1 A4/1 C5/2 | G4/1 E4/1 C4/2 | A4/4 |'
+            'C5/1 G4/1 E4/2 | C5/1 A4/1 E4/2 | G4/1 A4/1 G4/2 | E4/4',
+        'bajo':
+            'C3/2 G2/2 | A2/2 E3/2 | C3/2 E3/2 | A2/4 |'
+            'C3/1 E3/1 G2/2 | A2/1 C3/1 E3/2 | C3/2 A2/2 | C3/4',
+        'acomp':
+            'E3/1 G3/1 [C4,E4]/2 | A3/1 C4/1 [E4,A4]/2 |'
+            'G3/.5 E3/.5 C4/1 [E3,G3]/2 | [A3,C4,E4]/4 |'
+            'C4/1 E4/1 [G3,C4]/2 | C4/1 E4/1 [A3,C4]/2 |'
+            '[E3,G3]/2 [A3,C4]/2 | [C3,E3,G3]/4',
+    },
 }

@@ -1,4 +1,11 @@
 # 🎧 Spec Técnica — Motor de Audio (Android)
+
+> ⚠️ **Documento de la etapa web.** Se escribió cuando la app de alumnos era un
+> sitio estático, que se eliminó el 27/07/2026 (está en el historial de git). El
+> diseño y las decisiones de audio siguen valiendo —el motor C++ es un port fiel—
+> pero **los caminos de archivo y la arquitectura que describe ya no existen.**
+> La app de alumnos vive hoy en `../mylele-android`.
+
 ### MyLele — Detección de nota, acorde, rasgueo y ritmo por micrófono
 *Documento técnico para desarrollo + guía de uso para fundador no técnico*
 

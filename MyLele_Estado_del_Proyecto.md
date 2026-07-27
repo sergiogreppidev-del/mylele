@@ -1,4 +1,11 @@
 # MyLele · Estado del proyecto
+
+> ⚠️ **Documento de la etapa web.** Se escribió cuando la app de alumnos era un
+> sitio estático, que se eliminó el 27/07/2026 (está en el historial de git). El
+> diseño y las decisiones de audio siguen valiendo —el motor C++ es un port fiel—
+> pero **los caminos de archivo y la arquitectura que describe ya no existen.**
+> La app de alumnos vive hoy en `../mylele-android`.
+
 *Documento de traspaso — contexto para continuar en un chat nuevo*
 
 ---

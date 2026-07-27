@@ -1,5 +1,11 @@
 # 🤖 Plan de conversión a Android nativo — MyLele
 
+> ⚠️ **Documento de la etapa web.** Se escribió cuando la app de alumnos era un
+> sitio estático, que se eliminó el 27/07/2026 (está en el historial de git). El
+> diseño y las decisiones de audio siguen valiendo —el motor C++ es un port fiel—
+> pero **los caminos de archivo y la arquitectura que describe ya no existen.**
+> La app de alumnos vive hoy en `../mylele-android`.
+
 ### De prototipo web a app nativa con motor de audio propio
 *Análisis del estado actual + plan por fases. Escrito para vos (no técnico) y para quien programe.*
 

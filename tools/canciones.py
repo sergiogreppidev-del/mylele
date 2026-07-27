@@ -308,14 +308,21 @@ CANCIONES = {
             'F2/1 C3/1 A2/1 | G2/2 C3/1 | C3/1 G2/1 E3/1 | C3/1 E3/1 G2/1 |'
             'C3/1 G2/1 E3/1 | C3/1 E3/1 G2/1 | F2/1 A2/1 G2/1 | G2/1 D3/1 B2/1 |'
             'G2/1 B2/1 D3/1 | G2/1 D3/1 F2/1 | C3/1 G2/1 E3/1 | C3/3',
+        # El vals hace «pum-chin-chin» y ese es su encanto, pero DIECISÉIS compases
+        # con exactamente el mismo golpe es un metrónomo con acordes. El control de
+        # calidad del editor lo marcó y tenía razón.
+        #
+        # La copla (1-8) va liviana y con alguna corchea de arrastre al final del
+        # compás; el estribillo (9-15) entra pisando el tiempo 1 con el acorde
+        # entero. Es el mismo vals, pero respira y crece.
         'acomp':
-            'r/1 [E3,G3]/1 [E3,G3]/1 | r/1 [E3,G3,C4]/1 [E3,G3]/1 |'
-            'r/1 [A3,C4]/1 [A3,C4]/1 | r/1 [F3,A3]/1 [A3,C4]/1 |'
-            'r/1 [A3,C4]/1 [C4,F4]/1 | r/1 [D3,G3,B3]/1 [E3,G3]/1 |'
+            'r/1 [E3,G3]/1 [E3,G3]/1 | r/1 [E3,G3,C4]/1 G3/.5 C4/.5 |'
+            'r/1 [A3,C4]/1 [A3,C4]/1 | r/1 F3/.5 A3/.5 [A3,C4]/1 |'
+            'r/1 [A3,C4]/1 [C4,F4]/1 | r/1 [D3,G3,B3]/1 G3/.5 C4/.5 |'
             'r/1 [E3,G3]/1 [E3,G3,C4]/1 | E3/.5 G3/.5 C4/1 [E3,G3]/1 |'
-            'r/1 [E3,G3]/1 [E3,G3]/1 | r/1 [E3,G3,C4]/1 [E3,G3]/1 |'
-            'r/1 [A3,C4]/1 [D3,G3]/1 | r/1 [D3,G3,B3]/1 [D3,G3]/1 |'
-            'r/1 [D3,G3]/1 [B3,D4]/1 | r/1 [D3,F3,G3]/1 [D3,G3]/1 |'
+            '[C3,E3,G3]/1 r/1 [E3,G3]/1 | r/1 [E3,G3,C4]/1 E4/.5 C4/.5 |'
+            '[F3,A3,C4]/1 r/1 [D3,G3]/1 | r/1 [D3,G3,B3]/1 [D3,G3]/1 |'
+            '[D3,G3,B3]/1 r/1 [B3,D4]/1 | r/1 [D3,F3,G3]/1 F3/.5 D3/.5 |'
             'r/1 [E3,G3]/1 [E3,G3,C4]/1 | [C3,E3,G3]/3',
     },
 
